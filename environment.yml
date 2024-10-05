@@ -1,0 +1,19 @@
+name: flashfold
+channels:
+  - conda-forge
+  - biocore
+  - defaults
+dependencies:
+  - git
+  - python=3.10
+  - kalign2=2.04
+  - hhsuite=3.3.0
+  - openmm=8.0.0
+  - pdbfixer==1.9
+  - perl
+  - ncbi-datasets-cli
+  - hmmer
+  - pip
+  - pip:
+      - colabfold[alphafold] @ git+https://github.com/sokrypton/ColabFold
+      - jax[cuda]>=0.3.8,<0.4

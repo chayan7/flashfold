@@ -1,0 +1,257 @@
+# noinspection PyPackageRequirements
+from Bio import SeqIO
+# noinspection PyPackageRequirements
+from Bio.Seq import Seq
+# noinspection PyPackageRequirements
+from Bio.SeqRecord import SeqRecord
+from typing import List, Dict
+from collections import namedtuple
+from .util import calculate_md5_hash, join_list_elements_by_character, replace_char_from_string, is_valid_path
+
+# Define the named tuple
+Sequence = namedtuple('Sequence', ['hash', 'fasta'])
+Infile_feats = namedtuple('Infile_feats', ['accnrs', 'seqs', 'chain_accnrs', 'chain_seqs',
+                                           'chain_seq_hashes', 'a3m_header', 'hash_to_fasta', 'empty_subunits'])
+Chain = namedtuple('Subunit', ['subunits', 'frequency', 'sequence'])
+
+
+def extract_protein_sequences(gbff_file_path: str) -> List:
+    protein_sequences = []
+    with open(gbff_file_path, "r") as file:
+        for record in SeqIO.parse(file, "genbank"):
+            for feature in record.features:
+                if feature.type == "CDS" and "translation" in feature.qualifiers:
+                    accession = feature.qualifiers["protein_id"][0]
+                    gene_name = feature.qualifiers.get("gene", [""])[0]
+                    product = feature.qualifiers["product"][0]
+                    protein_seq = feature.qualifiers["translation"][0]
+                    hash_value = calculate_md5_hash("prot", protein_seq)
+                    protein_sequences.append((accession, gene_name, product, protein_seq, hash_value))
+    return protein_sequences
+
+
+def seq_to_fasta(accession: str, gene: str, desc: str, hash_str: str, sequence: str) -> str:
+    seq = Seq(sequence)
+    desc_with_hash = f"{hash_str}: {desc}"
+    seq_record = SeqRecord(seq, id=accession, name=gene, description=desc_with_hash)
+    return seq_record.format("fasta")
+
+
+def is_protein_sequence(sequence: str) -> bool:
+    """
+    Checks if a given sequence is a valid protein sequence.
+
+    Parameters:
+    sequence (str): The sequence to be checked.
+
+    Returns:
+    bool: True if the sequence is a valid protein sequence, False otherwise.
+    """
+
+    # According to https://wiki.thegpm.org/wiki/Amino_acid_symbols, two additional amino acid code is added to the
+    # end of the valid list: U=Selenocysteine; O=Pyrrolysine
+
+    valid_amino_acids = set("ARNDCEQGHILKMFPSTWYVUO")
+    sequence = sequence.upper()  # Convert sequence to uppercase
+
+    return all(char in valid_amino_acids for char in sequence)
+
+
+def is_valid_protein_fasta(file_path: str) -> bool:
+    """
+    Validates a protein FASTA file.
+
+    Parameters:
+    - file_path: Path to the FASTA file to be validated.
+
+    Returns:
+    - bool: True if the file is a valid protein FASTA file, False otherwise.
+    """
+    if not is_valid_path(file_path):
+        print(f"File not found: {file_path}")
+        return False
+
+    try:
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+
+        if not lines or not lines[0].startswith('>'):
+            print(f"File does not start with a '>' character.\nCheck: {file_path}")
+            return False
+
+        id_count = 0
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if line.startswith('>'):
+                if len(line) > 1:
+                    id_count += 1
+            elif not is_protein_sequence(line):
+                print(
+                    f"Invalid sequence character(s) found in line {i + 1} of the input protein FASTA file."
+                    f"\nCheck: {file_path}")
+                return False
+
+        if id_count == 0:
+            print(f"No valid protein IDs found in the file.\nCheck: {file_path}")
+            return False
+
+        return True
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return False
+
+
+def get_valid_sequence_records_from_fasta(fasta_file: str) -> List[Dict]:
+    parsed_sequence = SeqIO.parse(fasta_file, "fasta")
+    seq_records = []
+    count = 0
+    for record in parsed_sequence:
+        accession = str(record.id)
+        sequence = str(record.seq)
+        count += 1
+        accession_without_bad_char = replace_char_from_string(accession, "_")
+        changed_accession = f"S{count}_{accession_without_bad_char}"
+        record.id = changed_accession
+        seq_hash = calculate_md5_hash("prot", str(sequence))
+        record_dict: dict[str, str] = {"accession": changed_accession,
+                                       "sequence": sequence,
+                                       "fasta": record.format("fasta"),
+                                       "seq_hash": seq_hash}
+        seq_records.append(record_dict)
+    return seq_records
+
+
+def get_chain_from_sequence(sequence_list: List[str]) -> Chain:
+    uniq_sequence_set = set()
+    abundances = []
+    seq_to_abundance = []
+    for seq in sequence_list:
+        if seq not in uniq_sequence_set:
+            abundance = sequence_list.count(seq)
+            abundances.append(abundance)
+            seq_to_abundance.append(
+                [seq, abundance]
+            )
+            uniq_sequence_set.add(seq)
+
+    min_abundance = min(abundances)
+
+    subunits = []
+    for seq, abundance in seq_to_abundance:
+        rational_abundance = round(abundance/min_abundance)
+        for i in range(rational_abundance):
+            subunits.append(seq)
+
+    subunit_sequence = join_list_elements_by_character(subunits, "")
+    total_sequence = join_list_elements_by_character(sequence_list, "")
+    frequency = total_sequence.count(subunit_sequence)
+    if frequency == 0:
+        return Chain(sequence_list, 1, total_sequence)
+    return Chain(subunits, frequency, subunit_sequence)
+
+
+def get_input_fasta_features(sequence_records: List[Dict]) -> Infile_feats:
+    accessions = []
+    sequences = []
+    seq_hashes = []
+    hash_to_fasta = {}
+    for record in sequence_records:
+        accessions.append(record["accession"])
+        sequences.append(record["sequence"])
+        seq_hashes.append(record["seq_hash"])
+        hash_to_fasta[record["seq_hash"]] = record["fasta"]
+
+    # Make single chain with subúnits from input sequences
+    # It generates subunits as a list, frequency as integer, subunit_sequence as string
+    chain = get_chain_from_sequence(sequences)
+
+    chain_accnrs = []
+    chain_seq_hashes = []
+    chain_sequences = chain.subunits
+    for seq in chain_sequences:
+        chain_accnrs.append(accessions[sequences.index(seq)])
+        chain_seq_hashes.append(seq_hashes[sequences.index(seq)])
+
+    # Make unpaired alignment
+    empty_subunits = [""] * len(chain_seq_hashes)
+
+    for i in range(len(chain_sequences)):
+        empty_seq = "-" * len(chain_sequences[i])
+        empty_subunits[i] = empty_seq
+
+    if chain.frequency == 1:
+        uniq_seq_lengths = []
+        uniq_seq_units = []
+        for uniq_seq in chain_sequences:
+            uniq_seq_lengths.append(len(uniq_seq))
+            uniq_seq_units.append(chain.frequency)
+        joined_uniq_seq_lengths = join_list_elements_by_character(uniq_seq_lengths, ",")
+        joined_uniq_seq_units = join_list_elements_by_character(uniq_seq_units, ",")
+        a3m_header = f"#{joined_uniq_seq_lengths}\t{joined_uniq_seq_units}"
+    else:
+        a3m_header = f"#{len(chain.sequence)}\t{chain.frequency}"
+
+    return Infile_feats(accessions, sequences, chain_accnrs, chain_sequences, chain_seq_hashes, a3m_header,
+                        hash_to_fasta, empty_subunits)
+
+
+def get_alignment_records_from_a3m_file(a3m_file: str) -> Dict[str, str]:
+    parsed_sequence = SeqIO.parse(a3m_file, "fasta")
+    aln_records = {}
+    for record in parsed_sequence:
+        accession = str(record.id)
+        sequence = str(record.seq)
+        # Accession not empty validity check
+        if accession == "":
+            pass
+        elif sequence == "":
+            pass
+        else:
+            aln_records[accession] = sequence
+    return aln_records
+
+
+def combine_sequences(accessions: List, sequences: List) -> Sequence:
+    accession_combo = join_list_elements_by_character(accessions, "\t")
+    joined_combo_sequence = join_list_elements_by_character(sequences, "null")
+    hash_combo_sequence = calculate_md5_hash("prot", joined_combo_sequence)
+    sequences_formatted = f">{accession_combo}\n{joined_combo_sequence}\n"
+    return Sequence(hash_combo_sequence, sequences_formatted)
+
+
+def make_fasta_sequence(accession: str, sequence: str) -> Sequence:
+    hash_combo_sequence = calculate_md5_hash("prot", sequence)
+    sequences_formatted = f">{accession}\n{sequence}\n"
+    return Sequence(hash_combo_sequence, sequences_formatted)
+
+
+def combine_gappy_sequences(accessions: List, sequences: List) -> Sequence:
+
+    accession_index = 0
+    for i in range(len(sequences)):
+        seq = sequences[i]
+        mod_seq = seq.replace("-", "")
+        if mod_seq != "":
+            accession_index = i
+
+    accession = accessions[accession_index]
+    joined_combo_sequence = join_list_elements_by_character(sequences, "null")
+    hash_combo_sequence = calculate_md5_hash("prot", joined_combo_sequence)
+    sequences_formatted = f">{accession}\n{joined_combo_sequence}\n"
+    return Sequence(hash_combo_sequence, sequences_formatted)
+
+
+class SequenceDbFasta:
+    def __init__(self, fasta_path: str) -> None:
+        protein_hash_to_fasta = {}
+        for record in SeqIO.parse(fasta_path, "fasta"):
+            protein_hash = calculate_md5_hash("prot", str(record.seq))
+            protein_hash_to_fasta[protein_hash] = record.format("fasta")
+        self.sequence_records = protein_hash_to_fasta
+
+    def get_fasta_by_protein_hash(self, protein_hash: str) -> str:
+        if protein_hash in self.sequence_records:
+            return self.sequence_records[protein_hash]
+        print("Warning: File does not contain sequence.")
+        return ""
