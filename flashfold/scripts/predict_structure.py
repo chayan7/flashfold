@@ -57,7 +57,7 @@ def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu:
 
     child_alignment_path = os.path.join(parent_result_path, "foldflash_msa")
     create_new_directory(child_alignment_path)
-    run_jackhmmer(unique_fasta_file_path, sequence_database.fasta_db, cpu, child_alignment_path, path_to_perl)
+    run_jackhmmer(unique_fasta_file_path, sequence_database.fasta_db, cpu, child_alignment_path)
 
     # Process homology search output
     process_time = current_time()

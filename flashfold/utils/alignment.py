@@ -8,7 +8,7 @@ from .json import load_json_file
 from .execute import run_jobs_in_parallel
 
 
-def run_jackhmmer(fasta_files: list, database_fasta: str, cpu: int, out_path: str, perl_path: str) -> None:
+def run_jackhmmer(fasta_files: list, database_fasta: str, cpu: int, out_path: str) -> None:
     jackhmmer_commands = []
     sto_to_a3m_commands = []
     n_threads = max(1, round(cpu / len(fasta_files)))
@@ -21,8 +21,7 @@ def run_jackhmmer(fasta_files: list, database_fasta: str, cpu: int, out_path: st
         sto_command = ("jackhmmer --noali --F1 0.0005 --F2 0.00005 --F3 0.0000005 --incE 0.0001 -E 0.0001 -N 1 "
                        "-o /dev/null --cpu %s -A %s %s %s" % (n_threads, sto_file_path, fasta_file, database_fasta))
         jackhmmer_commands.append(sto_command)
-        sto_to_a3m_command = ("%s extra/reformat.pl sto a3m %s %s > /dev/null" % (perl_path, sto_file_path,
-                                                                                  a3m_file_path))
+        sto_to_a3m_command = ("perl extra/reformat.pl sto a3m %s %s > /dev/null" % (sto_file_path, a3m_file_path))
         sto_to_a3m_commands.append(sto_to_a3m_command)
 
     run_jobs_in_parallel(cpu, jackhmmer_commands, "Homology searching")
