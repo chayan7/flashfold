@@ -17,6 +17,7 @@ jobs:
     - name: Test with pip
       run: |
         conda env update -f envs/linux-environment.yml
+        conda init
         conda activate flashfold
         pip install .
         python -c "import flashfold; print('FlashFold installed successfully!')"
