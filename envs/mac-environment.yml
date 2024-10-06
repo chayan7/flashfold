@@ -7,15 +7,16 @@ channels:
 dependencies:
   - git
   - python=3.10
-  - openmm==7.7.0 
-  - pdbfixer
+  - openmm==8.0.0
+  - pdbfixer==1.9
   - perl
   - ncbi-datasets-cli
   - pip
   - pip:
       - colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold
       - colabfold[alphafold]
-      - jax[cuda12]==0.4.28
+      - jax==0.4.23
+      - jaxlib==0.4.23
       - tensorflow
       - silence_tensorflow
       - setuptools~=69.0.3
