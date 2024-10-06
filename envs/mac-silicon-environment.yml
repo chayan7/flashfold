@@ -19,6 +19,7 @@ dependencies:
       - colabfold[alphafold]
       - silence_tensorflow
       - setuptools~=69.0.3
+      - wget~=3.2
       - ujson~=5.10.0
       - numpy~=1.26.4
       - requests~=2.32.3

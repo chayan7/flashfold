@@ -14,11 +14,15 @@ Or, one can use the following command:
 
 #For Linux
 wget -q -P . https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
-bash ./Mambaforge-Linux-x86_64.sh
+bash ./Mambaforge-Linux-x86_64.sh -b
 
-#For MacOS
+#For MacOS (Silicon)
 wget -q -P . https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh
-bash ./Miniforge3-MacOSX-arm64.sh
+bash ./Miniforge3-MacOSX-arm64.sh -b
+
+#For MacOS (Intel)
+wget -q -P . https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-MacOSX-x86_64.sh
+bash ./Mambaforge-MacOSX-x86_64.sh -b
 
 ```
 
@@ -37,7 +41,7 @@ conda env update -f envs/linux-environment.yml
 ```
 #### MacOS
 ```sh
-conda env update -f envs/mac-environment.yml
+conda env update -f envs/mac-silicon-environment.yml
 ```
 #### Activate the environment
 ```sh
