@@ -5,10 +5,23 @@ A tool for protein and protein complex structure prediction.
 
 ## Installation
 
-[![Python Package using Conda](https://github.com/chayan7/flashfold/actions/workflows/python-package-conda.yml/badge.svg?branch=main&event=push)](https://github.com/chayan7/flashfold/actions/workflows/python-package-conda.yml)
 
 ### Step 1: Install Conda
-Make sure you have Conda installed. You can download and install it from [Anaconda](https://www.anaconda.com/products/distribution) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+First, we need to make sure that we have Conda installed. It can be downloaded and installed from [Anaconda](https://www.anaconda.com/products/distribution) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+
+Or, one can use the following command:
+```sh
+
+#For Linux
+wget -q -P . https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
+bash ./Mambaforge-Linux-x86_64.sh
+
+#For MacOS
+wget -q -P . https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh
+bash ./Miniforge3-MacOSX-arm64.sh
+
+```
+
 
 ### Step 2: Clone the Repository
 ```sh
@@ -17,14 +30,14 @@ cd flashfold
 ```
 
 ### Step 3: Create and Activate the Conda Environment
-#### Create the environment
-```sh
-conda env update -f envs/linux-environment.yml # For Linux
 
-```
-or
+#### Linux
 ```sh
-conda env update -f envs/mac-environment.yml # For MacOS
+conda env update -f envs/linux-environment.yml
+```
+#### MacOS
+```sh
+conda env update -f envs/mac-environment.yml
 ```
 #### Activate the environment
 ```sh
@@ -33,10 +46,7 @@ conda activate flashfold
 
 ### Step 4: Install the Python Package
 ```sh
-pip install .
+pip install -e .
 ```
 
-### Step 5: Verify the installation
-```sh
-python -c "import flashfold; print('FlashFold installed successfully!')"
-```
+[![Linux Python Package using Conda](https://github.com/chayan7/flashfold/actions/workflows/linux-python-package-conda.yml/badge.svg?event=push)](https://github.com/chayan7/flashfold/actions/workflows/linux-python-package-conda.yml)
