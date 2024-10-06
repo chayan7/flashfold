@@ -2,10 +2,14 @@ from setuptools import setup, find_packages
 
 setup(
     name='flashfold',
-    version='0.1.0',
+    version='1.0.0',
     packages=find_packages(),
     install_requires=[
         "flashfold"
+    ],
+    scripts=[
+        'src/flashfold/extra/download_from_ncbi.py',
+        'src/flashfold/scripts/reformat.pl'
     ],
     entry_points={
         'console_scripts': [
