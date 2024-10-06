@@ -17,7 +17,7 @@ jobs:
     - name: Test with pip
       run: |
         conda env update -f envs/linux-environment.yml
-        $(conda info --base)/envs/flashfold/bin/python pip install .
+        $(conda info --base)/envs/flashfold/bin/pip install .
         $(conda info --base)/envs/flashfold/bin/python -c "import flashfold"
         $(conda info --base)/envs/flashfold/bin/colabfold_bacth -h
         echo "Installation completed."
