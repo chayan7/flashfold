@@ -13,6 +13,7 @@ dependencies:
   - ncbi-datasets-cli
   - pip
   - pip:
+      - colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold
       - colabfold[alphafold]
       - jax[cuda12]==0.4.28
       - tensorflow

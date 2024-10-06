@@ -15,7 +15,7 @@ FLASHFOLD_CONDA_ENV_DIR="${CURRENT_CONDA_PATH}/envs/${FLASHFOLD_ENV_NAME}"
 FLASHFOLD_ENV_SITE_PACKAGES="${FLASHFOLD_CONDA_ENV_DIR}/lib/python3.10/site-packages/"
 
 
-conda env create -f "${ENV_YML_FILE_PATH}"
+conda env update -f "${ENV_YML_FILE_PATH} --solver libmamba"
 conda activate "${FLASHFOLD_ENV_NAME}"
 
 

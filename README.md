@@ -16,8 +16,17 @@ cd flashfold
 ```
 
 ### Step 3: Create and Activate the Conda Environment
+#### Create the environment
 ```sh
-conda env create -f environment.yml
+conda env create -f envs/linux-environment.yml # For Linux
+
+```
+or
+```sh
+conda env create -f envs/mac-environment.yml # For MacOS
+```
+#### Activate the environment
+```sh
 conda activate flashfold
 ```
 

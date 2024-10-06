@@ -28,9 +28,6 @@ setup(
     author_email='chayan_saha@outlook.com',
     license='MIT',
     packages=find_packages(),
-    scripts=[
-        'src/flashfold/extra/download_from_ncbi.py',
-    ],
     entry_points={
         'console_scripts': [
             'flashfold = flashfold.main:main'
