@@ -1,7 +1,7 @@
 import argparse
-from scripts import create_protein_db_from_gbk, download_representative_db, predict_3d_structure, \
+from flashfold.scripts import create_protein_db_from_gbk, download_representative_db, predict_3d_structure, \
     extend_main_sequence_db
-from utils import is_zero_or_pos_int, is_pos_int
+from flashfold.utils import is_zero_or_pos_int, is_pos_int
 
 
 def main() -> None:
