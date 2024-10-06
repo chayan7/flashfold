@@ -13,10 +13,10 @@ dependencies:
   - ncbi-datasets-cli
   - pip
   - pip:
-      - colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold
-      - colabfold[alphafold]
+      - colabfold[alphafold] @ git+https://github.com/sokrypton/ColabFold
       - jax==0.4.23
       - jaxlib==0.4.23
+      - colabfold[alphafold]
       - tensorflow
       - silence_tensorflow
       - setuptools~=69.0.3

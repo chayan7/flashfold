@@ -12,8 +12,6 @@ CURRENT_CONDA_PATH=$(conda info --base)
 ENV_YML_FILE_PATH="${CURRENTPATH}/envs/mac-environment.yml"
 FLASHFOLD_ENV_NAME="flashfold"
 FLASHFOLD_CONDA_ENV_DIR="${CURRENT_CONDA_PATH}/envs/${FLASHFOLD_ENV_NAME}"
-FLASHFOLD_ENV_SITE_PACKAGES="${FLASHFOLD_CONDA_ENV_DIR}/lib/python3.10/site-packages/"
-
 
 conda env update -f "${ENV_YML_FILE_PATH}"
 conda activate "${FLASHFOLD_ENV_NAME}"
