@@ -2,9 +2,10 @@
 
 A tool for protein and protein complex structure prediction.
 
-# FlashFold
 
 ## Installation
+
+[![Python Package using Conda](https://github.com/chayan7/flashfold/actions/workflows/python-package-conda.yml/badge.svg?branch=main&event=push)](https://github.com/chayan7/flashfold/actions/workflows/python-package-conda.yml)
 
 ### Step 1: Install Conda
 Make sure you have Conda installed. You can download and install it from [Anaconda](https://www.anaconda.com/products/distribution) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
