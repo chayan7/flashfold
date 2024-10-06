@@ -3,7 +3,7 @@
 import os
 import sys
 from collections import defaultdict
-from utils import extract_protein_sequences, is_valid_path, get_hash_to_files_with_extensions_from_dir, \
+from flashfold.utils import extract_protein_sequences, is_valid_path, get_hash_to_files_with_extensions_from_dir, \
     current_time, seq_to_fasta, write_dict_of_set_to_json_as_file
 
 

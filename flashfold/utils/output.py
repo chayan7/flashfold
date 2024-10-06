@@ -4,6 +4,16 @@ from .util import is_valid_path, remove_all_contents_in_directory
 
 
 def manage_output_path(out_path: str, overwrite: bool) -> str:
+    """
+    Manage the output path for the foldflash results.
+    Args:
+        out_path: The output path for the foldflash results.
+        overwrite: A boolean value indicating if the existing results should be overwritten or not.
+
+    Returns:
+        str: The absolute path to the output directory.
+
+    """
     if not is_valid_path(out_path):
         os.makedirs(out_path)
         print(f"Created new output directory: {os.path.abspath(out_path)}")

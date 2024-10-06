@@ -1,7 +1,7 @@
 # Author: Chayan Kumar Saha
 
 import os
-from utils import is_valid_path, wget_file_from_url
+from flashfold.utils import is_valid_path, wget_file_from_url
 
 
 # Need to update the rep_database_link link later.

@@ -1,15 +1,17 @@
 name: flashfold
 channels:
-  - conda-forge
+  - conda-forge 
+  - bioconda
   - biocore
   - defaults
 dependencies:
   - git
   - python=3.10
-  - kalign2=2.04
+  - openmm==7.7.0 
+  - pdbfixer
+  - kalign2=2.04 
   - hhsuite=3.3.0
-  - openmm=8.0.0
-  - pdbfixer==1.9
+  - mmseqs2=15.6f452
   - perl
   - ncbi-datasets-cli
   - hmmer

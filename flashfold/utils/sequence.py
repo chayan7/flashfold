@@ -16,6 +16,17 @@ Chain = namedtuple('Subunit', ['subunits', 'frequency', 'sequence'])
 
 
 def extract_protein_sequences(gbff_file_path: str) -> List:
+    """
+    Extract protein sequences from a GenBank file. The protein sequences are extracted from the CDS features in the
+    GenBank file.
+
+    Args:
+        gbff_file_path (str): Path to the GenBank file.
+
+    Returns:
+        List: A list of tuples containing accession, gene name, product, protein sequence, and hash value.
+
+    """
     protein_sequences = []
     with open(gbff_file_path, "r") as file:
         for record in SeqIO.parse(file, "genbank"):
@@ -31,6 +42,19 @@ def extract_protein_sequences(gbff_file_path: str) -> List:
 
 
 def seq_to_fasta(accession: str, gene: str, desc: str, hash_str: str, sequence: str) -> str:
+    """
+    Converts a sequence to a FASTA format.
+    Args:
+        accession
+        gene
+        desc
+        hash_str
+        sequence
+
+    Returns:
+        str: The sequence in FASTA format
+
+    """
     seq = Seq(sequence)
     desc_with_hash = f"{hash_str}: {desc}"
     seq_record = SeqRecord(seq, id=accession, name=gene, description=desc_with_hash)
@@ -103,6 +127,14 @@ def is_valid_protein_fasta(file_path: str) -> bool:
 
 
 def get_valid_sequence_records_from_fasta(fasta_file: str) -> List[Dict]:
+    """
+    Get valid sequence records from a FASTA file. The sequence records are stored in a list of dictionaries.
+    Args:
+        fasta_file:     Path to the FASTA file.
+
+    Returns:
+        List: A list of dictionaries containing the accession, sequence, FASTA format, and hash value of the sequence.
+    """
     parsed_sequence = SeqIO.parse(fasta_file, "fasta")
     seq_records = []
     count = 0
@@ -123,6 +155,14 @@ def get_valid_sequence_records_from_fasta(fasta_file: str) -> List[Dict]:
 
 
 def get_chain_from_sequence(sequence_list: List[str]) -> Chain:
+    """
+    Get a chain of subunits from a list of sequences.
+    Args:
+        sequence_list:  A list of sequences.
+
+    Returns:
+        Chain: A chain of subunits.
+    """
     uniq_sequence_set = set()
     abundances = []
     seq_to_abundance = []
@@ -152,6 +192,15 @@ def get_chain_from_sequence(sequence_list: List[str]) -> Chain:
 
 
 def get_input_fasta_features(sequence_records: List[Dict]) -> Infile_feats:
+    """
+    Get input FASTA features.
+    Args:
+        sequence_records:  A list of dictionaries containing the accession, sequence,
+        FASTA format, and hash value of the sequence.
+
+    Returns:
+        Infile_feats: A named tuple containing the input FASTA features.
+    """
     accessions = []
     sequences = []
     seq_hashes = []
@@ -197,6 +246,14 @@ def get_input_fasta_features(sequence_records: List[Dict]) -> Infile_feats:
 
 
 def get_alignment_records_from_a3m_file(a3m_file: str) -> Dict[str, str]:
+    """
+    Get alignment records from an A3M file. The alignment records are stored in a dictionary.
+    Args:
+        a3m_file: Path to the A3M file.
+
+    Returns:
+        Dict: A dictionary containing the accession and sequence of the alignment records
+    """
     parsed_sequence = SeqIO.parse(a3m_file, "fasta")
     aln_records = {}
     for record in parsed_sequence:
@@ -213,6 +270,15 @@ def get_alignment_records_from_a3m_file(a3m_file: str) -> Dict[str, str]:
 
 
 def combine_sequences(accessions: List, sequences: List) -> Sequence:
+    """
+    Combine sequences from a list of accessions and sequences
+    Args:
+        accessions:     A list of accessions.
+        sequences:    A list of sequences.
+
+    Returns:
+        Sequence: A named tuple containing the hash value and the combined sequences.
+    """
     accession_combo = join_list_elements_by_character(accessions, "\t")
     joined_combo_sequence = join_list_elements_by_character(sequences, "null")
     hash_combo_sequence = calculate_md5_hash("prot", joined_combo_sequence)
@@ -220,14 +286,31 @@ def combine_sequences(accessions: List, sequences: List) -> Sequence:
     return Sequence(hash_combo_sequence, sequences_formatted)
 
 
-def make_fasta_sequence(accession: str, sequence: str) -> Sequence:
+def make_hash_fasta_sequence(accession: str, sequence: str) -> Sequence:
+    """
+    Make a FASTA sequence from an accession and a sequence.
+    Args:
+        accession:
+        sequence:
+
+    Returns:
+        Sequence: A named tuple containing the hash value and the FASTA sequence.
+    """
     hash_combo_sequence = calculate_md5_hash("prot", sequence)
     sequences_formatted = f">{accession}\n{sequence}\n"
     return Sequence(hash_combo_sequence, sequences_formatted)
 
 
 def combine_gappy_sequences(accessions: List, sequences: List) -> Sequence:
+    """
+    Combine gappy sequences from a list of accessions and sequences.
+    Args:
+        accessions:     A list of accessions.
+        sequences:  A list of sequences.
 
+    Returns:
+        Sequence: A named tuple containing the hash value and the combined gappy sequences
+    """
     accession_index = 0
     for i in range(len(sequences)):
         seq = sequences[i]

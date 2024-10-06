@@ -2,7 +2,7 @@
 
 import os
 import sys
-from utils import extract_protein_sequences, get_hash_to_files_with_extensions_from_dir, \
+from flashfold.utils import extract_protein_sequences, get_hash_to_files_with_extensions_from_dir, \
     current_time, seq_to_fasta, write_dict_of_set_to_json_as_file, is_valid_database_dir, \
     get_filename_to_path_set_by_directory, load_json_file, get_new_elements_from_second_list, \
     get_directory_from_file_path, SequenceDbFasta

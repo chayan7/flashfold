@@ -10,6 +10,16 @@ files_to_be_in_database = ["prot_hash_to_accession.json", "protein_to_gbks.json"
 
 
 def is_valid_database_file_count(db_file_list: List[str], query_dict: Dict[str, Set[str]]) -> bool:
+    """
+    Checks if the database file count is valid.
+
+    Args:
+        db_file_list (List[str]): List of database file names.
+        query_dict (Dict[str, Set[str]]): Dictionary mapping file names to sets of file paths.
+
+    Returns:
+        bool: True if each file name has exactly one file path, False otherwise.
+    """
     for filename in db_file_list:
         count = len(query_dict[filename])
         # Database should have 1 file path per file name
@@ -19,6 +29,15 @@ def is_valid_database_file_count(db_file_list: List[str], query_dict: Dict[str, 
 
 
 def is_valid_database_dir(database_dir: str) -> bool:
+    """
+    Checks if the database directory is valid.
+
+    Args:
+        database_dir (str): Path to the database directory.
+
+    Returns:
+        bool: True if the database directory is valid, False otherwise.
+    """
     if is_valid_path(database_dir):
         filename_to_path = get_filename_to_path_set_by_directory(database_dir, [".json", ".fasta"])
         if not is_valid_database_file_count(files_to_be_in_database, filename_to_path):
@@ -73,7 +92,7 @@ class Database:
             for sto_file_path in sto_files:
                 query_hash = get_filename_without_extension(sto_file_path)
                 if query_seq_hash == query_hash:
-                    with open(sto_file_path, "r") as sto_in:
+                    with open(sto_file_path, "r", encoding="utf-8") as sto_in:
                         for line in sto_in:
                             if line.startswith("#=GS"):
                                 hit_accession = line.split(":")[0].split(" ")[1]

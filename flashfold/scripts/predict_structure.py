@@ -2,7 +2,7 @@
 
 import os.path
 import sys
-from utils import is_valid_protein_fasta, is_valid_database_dir, manage_output_path, \
+from flashfold.utils import is_valid_protein_fasta, is_valid_database_dir, manage_output_path, \
     join_list_elements_by_character, create_new_directory, is_installed, run_jackhmmer, \
     get_files_from_path_by_extension, run_colabfold, current_time, current_time_raw, update_time_log, \
     get_valid_sequence_records_from_fasta, get_input_fasta_features, Database, create_a3m_for_folding, \
@@ -39,7 +39,7 @@ def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu:
     unique_fasta_file_path = []
     for hash_id in hash_to_fasta:
         write_fasta = os.path.join(child_fasta_path, f"{hash_id}.fasta")
-        with open(write_fasta, "w") as fasta_file_out:
+        with open(write_fasta, "w", encoding="utf-8") as fasta_file_out:
             # noinspection PyTypeChecker
             print(hash_to_fasta[hash_id], file=fasta_file_out)
         unique_fasta_file_path.append(write_fasta)
@@ -78,14 +78,14 @@ def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu:
     # Run_colabfold
     colabfold_is_installed = is_installed("colabfold_batch")
     if not colabfold_is_installed:
-        print(f"Missing colabfold_batch: it is recommended to reinstall and run foldflash afterwards.")
+        print("Missing colabfold_batch: it is recommended to reinstall and run foldflash afterwards.")
         sys.exit()
 
     a3m_file_name = join_list_elements_by_character(query_fasta_features.accnrs, "-")
     combined_homology_search_output = os.path.join(concat_a3m_path, f"{a3m_file_name}.a3m")
     structure_prediction_out_path = os.path.join(parent_result_path, "foldflash_predicted_structure")
     create_new_directory(structure_prediction_out_path)
-    run_colabfold("colabfold_batch", is_monomer, combined_homology_search_output, structure_prediction_out_path, num_models,
+    run_colabfold(is_monomer, combined_homology_search_output, structure_prediction_out_path, num_models,
                   num_recycle, stop_at_score, num_top, relax_max_iterations)
     update_time_log(time_log_file, "Completed Step 2: Structure prediction", True)
     generate_score_matrix(structure_prediction_out_path, cutoff, is_monomer)

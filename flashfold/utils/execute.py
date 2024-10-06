@@ -3,10 +3,22 @@ import subprocess
 import sys
 from queue import Queue, Empty
 from tqdm import tqdm
+from typing import List
 from .util import current_time
 
 
 def worker_func(q, stopped):
+    """
+    Worker function to process commands from a queue until a stop event is set.
+
+    Args:
+        q (queue.Queue): A thread-safe queue containing commands to be executed.
+        stopped (threading.Event): An event to signal when the worker should stop processing.
+
+    The function retrieves commands from the queue using the get_nowait() method to avoid blocking.
+    It executes each command using subprocess.run() and handles any CalledProcessError exceptions.
+    The function continues processing until the stop event is set and the queue is empty.
+    """    
     while not stopped.is_set() or not q.empty():
         try:
             # Use the get_nowait() method for retrieving a queued item to
@@ -22,7 +34,16 @@ def worker_func(q, stopped):
             q.task_done()
 
 
-def run_jobs_in_parallel(thread_count: int, jobs: list, job_name: str) -> None:
+def run_jobs_in_parallel(thread_count: int, jobs: List, job_name: str) -> None:
+    """
+        Args:
+            thread_count (int): The number of threads to use for running the jobs.
+            jobs (list): A list of jobs (commands) to be executed.
+            job_name (str): A name for the job batch, used for logging purposes.
+
+        Returns:
+            None
+    """
     stopped = threading.Event()
     q = Queue()
     if job_name != "":
@@ -48,11 +69,14 @@ def run_jobs_in_parallel(thread_count: int, jobs: list, job_name: str) -> None:
 
 
 def run_single_job(job: str, job_name: str) -> None:
+    """
+    Run a single job using subprocess.run() and print the start and completion messages.
+    """
     if job.strip() == "":
-        print(f"Warning: No executable command found.")
+        print("Warning: No executable command found.")
         sys.exit()
     if job_name.strip() == "":
-        print(f"Warning: No job name found.")
+        print("Warning: No job name found.")
         sys.exit()
 
     print(f'\n-- {current_time()} > {job_name} is being processed')
@@ -64,12 +88,14 @@ def run_single_job(job: str, job_name: str) -> None:
 
 
 def get_count_from_log(log_file_path: str) -> int:
-    """ Counts occurrences of a specific pattern in the log file. """
+    """
+    Counts occurrences of a specific pattern in the log file.
+    """
     count = 0
     retry = True
     while retry:
         try:
-            with open(log_file_path, 'r') as file:
+            with open(log_file_path, 'r', encoding='utf-8') as file:
                 for line in file:
                     if "recycle=" in line:
                         count += 1
@@ -80,6 +106,16 @@ def get_count_from_log(log_file_path: str) -> int:
 
 
 def get_updated_count_from_log(log_file_path: str, prev_count: int, total: int) -> int:
+    """
+    Get the updated count from the log file.
+    Args:
+        log_file_path (str): The path to the log file.
+        prev_count (int): The previous count of occurrences.
+        total (int): The total number of occurrences to reach.
+
+    Returns:
+        int: The updated count of occurrences.
+    """
     if prev_count == total:
         return total
 
@@ -94,18 +130,31 @@ def get_updated_count_from_log(log_file_path: str, prev_count: int, total: int) 
 
 
 def run_single_job_with_progress(job: str, steps: int, intervals: int, job_name: str, log_path: str) -> None:
+    """
+    Run a single job using subprocess.Popen() and display a progress bar based on the log file.
+    Args:
+        job: The command to run.
+        steps: The number of steps to complete the job.
+        intervals: The number of intervals to update the progress bar.
+        job_name: The name of the job.
+        log_path: The path to the log file.
+
+    Returns:
+        None
+
+    """
     if job.strip() == "":
-        print(f"Warning: No executable command found.")
+        print("Warning: No executable command found.")
         sys.exit()
     if job_name.strip() == "":
-        print(f"Warning: No job name found.")
+        print("Warning: No job name found.")
         sys.exit()
 
     # Use subprocess.Popen to run the command
     try:
         print(f'\n-- {current_time()} > {job_name} is being processed')
         total_count = steps*intervals
-        description = f"\tPrediction-recycle progress"
+        description = "\tPrediction-recycle progress"
         progress_bar = tqdm(total=steps, desc=description, unit="%", ncols=80, delay=1,
                             bar_format="{desc}: |{bar}| {percentage:3.0f}% ...  ", colour='#D3D3D3')
         # Start the subprocess
@@ -125,8 +174,7 @@ def run_single_job_with_progress(job: str, steps: int, intervals: int, job_name:
                 percentage_new = round(new_count/total_count*steps, 2)
                 percentage_old = round(old_count/total_count*steps, 2)
                 progress_bar.update(percentage_new - percentage_old)  # Update the progress bar with new occurrences
-                old_count = new_count  # Update the last count to the new one
-                #progress_bar.refresh()
+                old_count = new_count  # Update the old count
                 retry = True
         progress_bar.close()
 

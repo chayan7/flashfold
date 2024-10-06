@@ -10,7 +10,16 @@ from typing import Dict, Set, List, Literal
 
 
 def calculate_md5_hash(input_type: Literal["path", "prot"], content: str) -> str:
-    # Calculate MD5 hash based on input type
+    """
+    Calculate the MD5 hash of a file or a string.
+    Args:   
+        input_type (str): The type of input to calculate the hash for.
+        content (str): The content to calculate the hash for.
+    Returns:
+        str: The MD5 hash of the input content.
+    Raises:
+        ValueError: If the input type is not 'path' or 'prot'.
+    """
     if input_type == "path":
         # Read the file contents and calculate hash
         with open(content, 'rb') as file:
@@ -18,17 +27,22 @@ def calculate_md5_hash(input_type: Literal["path", "prot"], content: str) -> str
             while chunk := file.read(4096):
                 md5_hash.update(chunk)
         return md5_hash.hexdigest()
-    elif input_type == "prot":
+    if input_type == "prot":
         # Calculate hash directly from the provided content string
         string_bytes = content.encode('utf-8')
         md5_hash = hashlib.md5()
         md5_hash.update(string_bytes)
         return md5_hash.hexdigest()
-    else:
-        raise ValueError("Input type must be either 'path' or 'prot'")
+    raise ValueError("Invalid input type. Please provide 'path' or 'prot'.")
 
 
 def is_valid_path(directory_path: str) -> bool:
+    """
+    Args:
+        directory_path (str): The path to the directory to check.
+    Returns:
+        bool: True if the directory exists, False otherwise
+    """
     if os.path.exists(directory_path):
         return True
     else:
@@ -36,6 +50,10 @@ def is_valid_path(directory_path: str) -> bool:
 
 
 def create_new_directory(directory_path: str) -> None:
+    """
+    Args:
+        directory_path (str): The path to the directory to create.
+    """
     if not is_valid_path(directory_path):
         os.makedirs(directory_path)
     else:
@@ -64,6 +82,16 @@ def remove_all_contents_in_directory(directory: str):
 
 
 def has_desired_file_extensions(file: str, desired_extensions: List) -> bool:
+    """
+    Checks if the file has one of the specified extensions.
+
+    Parameters:
+    file (str): The file to check.
+    desired_extensions (List): The list of desired file extensions.
+
+    Returns:
+    bool: True if the file has one of the desired extensions, False otherwise.
+    """
     file_extension = os.path.splitext(file)[1]
     if file_extension in desired_extensions:
         return True
@@ -77,6 +105,7 @@ def get_filename_to_path_set_by_directory(input_directory: str, extensions: List
 
     Parameters:
     input_directory (str): The directory to search for files.
+    extensions (List): The list of desired file extensions.
 
     Returns:
     Dict[str, Set[str]]: A dictionary where keys are filenames and values are sets of their absolute paths.
@@ -96,7 +125,17 @@ def get_filename_to_path_set_by_directory(input_directory: str, extensions: List
     return filename_to_path
 
 
-def get_hash_to_files_with_extensions_from_dir(directory: str, extensions: List) -> dict:
+def get_hash_to_files_with_extensions_from_dir(directory: str, extensions: List) -> Dict:
+    """
+    Indexes the files in the specified directory by their MD5 hash.
+
+    Parameters:
+    directory (str): The directory to index.
+    extensions (List): The list of desired file extensions.
+
+    Returns:
+    Dict: A dictionary where keys are MD5 hashes and values are file paths.
+    """
     hash_to_desired_files = {}
 
     if is_valid_path(directory):
@@ -120,35 +159,42 @@ def get_hash_to_files_with_extensions_from_dir(directory: str, extensions: List)
 
 
 def current_time() -> str:
-    # Get the current time
+    """
+    Get the current time in a human-readable format.
+    """
     present_time = datetime.now()
-
-    # Format the current time in a human-readable way
     return present_time.strftime("%d-%m-%y %H:%M:%S")
 
 
 def current_time_raw() -> datetime:
+    """
+    Get the current time in a raw format.
+    """
     return datetime.now()
 
 
 def is_zero_or_pos_int(input_str: str):
+    """
+    Check if the input is a 0 or a positive integer.
+    """
     try:
         n = int(input_str)
         if n < 0:
             raise argparse.ArgumentTypeError("Input must be a 0 or a positive integer (input >= 0)")
-        else:
-            return n
+        return n
     except ValueError:
         raise argparse.ArgumentTypeError("Invalid input")
 
 
 def is_pos_int(input_str: str):
+    """
+    Check if the input is a positive integer.
+    """
     try:
         n = int(input_str)
         if n < 1:
             raise argparse.ArgumentTypeError("Input must be a positive integer (input >= 1)")
-        else:
-            return n
+        return n
     except ValueError:
         raise argparse.ArgumentTypeError("Invalid input")
 
@@ -173,6 +219,16 @@ def join_list_elements_by_character(input_list: list,
 
 
 def get_new_elements_from_second_list(first_list: List, second_list: List) -> List:
+    """
+    Get the elements that are present in the second list but not in the first list.
+
+    Args:
+        first_list (List): The first list of elements.
+        second_list (List): The second list of elements.
+
+    Returns:
+        List: A list of elements that are in the second list but not in the first list.
+    """
     set1 = set(first_list)
     set2 = set(second_list)
     # Get the difference
@@ -198,6 +254,9 @@ def is_installed(tool_name: str) -> bool:
 
 
 def get_files_from_path_by_extension(path: str, extension: str) -> list:
+    """
+    Get a list of files with a specified extension from a given path.
+    """
     absolute_path = os.path.abspath(path)
     all_contents_in_path = glob.glob(os.path.join(absolute_path, "*"))
     file_list = []
@@ -223,6 +282,15 @@ def get_filename_without_extension(file_path: str) -> str:
 
 
 def get_file_path_by_filename(file_path_list: list, file_name) -> str:
+    """
+    Get the file path from a list of file paths based on the file name.
+    Args:
+        file_path_list
+        file_name
+
+    Returns:
+        str: The file path corresponding to the file name.
+    """
     file_path_to_return = ""
     for file_path in file_path_list:
         base_name = os.path.basename(file_path)
@@ -234,18 +302,54 @@ def get_file_path_by_filename(file_path_list: list, file_name) -> str:
 
 
 def is_pattern_matched(pattern: str, query: str) -> bool:
+    """
+    Check if a pattern is matched in a query string.
+    Args:
+        pattern: regex pattern to match
+        query: string to search for the pattern
+
+    Returns:
+        bool: True if the pattern is matched in the query, False otherwise.
+    """
     return bool(re.findall(pattern, query))
 
 
 def get_directory_from_file_path(file_path: str) -> str:
+    """
+    Get the directory path from a given file path.
+    Args:
+        file_path:  The path to the file.
+
+    Returns:
+        str: The directory path.
+    """
     return os.path.dirname(file_path)
 
 
 def replace_char_from_string(input_string: str, replace_with: Literal["_", "-", ":"]) -> str:
+    """
+    Replace special characters in a string with a specified character.
+    Args:
+        input_string:       The input string.
+        replace_with:       The character to replace the special characters with.
+
+    Returns:
+        str: The string with special characters replaced.
+    """
     return re.sub("[^a-zA-Z0-9._]", replace_with, input_string)
 
 
-def update_time_log(log_file: str, message: str, use_timestamp: bool) -> None: 
+def update_time_log(log_file: str, message: str, use_timestamp: bool) -> None:
+    """
+    Update the time log with a message.
+    Args:
+        log_file:    The path to the log file.
+        message:    The message to write to the log file.
+        use_timestamp:  A boolean value to determine if the message should be timestamped.
+
+    Returns:
+        None
+    """
     with open(log_file, "a") as f:
         if use_timestamp:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

@@ -3,12 +3,24 @@ import itertools
 from typing import List, Dict, Set
 from .util import get_filename_without_extension, join_list_elements_by_character, current_time
 from .sequence import Sequence, Infile_feats, get_alignment_records_from_a3m_file, combine_sequences, \
-    combine_gappy_sequences, make_fasta_sequence
+    combine_gappy_sequences, make_hash_fasta_sequence
 from .json import load_json_file
 from .execute import run_jobs_in_parallel
 
 
 def run_jackhmmer(fasta_files: list, database_fasta: str, cpu: int, out_path: str) -> None:
+    """
+    Run jackhmmer for homology searching.
+
+    Args:
+        fasta_files (list): List of paths to FASTA files.
+        database_fasta (str): Path to the database FASTA file.
+        cpu (int): Number of CPU cores to use.
+        out_path (str): Output directory path.
+
+    Returns:
+        None
+    """
     jackhmmer_commands = []
     sto_to_a3m_commands = []
     n_threads = max(1, round(cpu / len(fasta_files)))
@@ -29,6 +41,16 @@ def run_jackhmmer(fasta_files: list, database_fasta: str, cpu: int, out_path: st
 
 
 def has_good_coverage(sequence: str, coverage: float = 0.5) -> bool:
+    """
+    Check if the sequence has good coverage.
+
+    Args:
+        sequence (str): The sequence to check.
+        coverage (float): The coverage threshold. Default is 0.5.
+
+    Returns:
+        bool: True if the sequence has good coverage, False otherwise.
+    """
     sequence_length = len(sequence)
     coverage_threshold = sequence_length * coverage
     gap_count = sequence.count("-")
@@ -39,6 +61,16 @@ def has_good_coverage(sequence: str, coverage: float = 0.5) -> bool:
 
 
 def get_query_to_a3m_records(a3m_files: List[str], query_hashes: List[str]) -> Dict[str, str]:
+    """
+    Get query to A3M records.
+
+    Args:
+        a3m_files (List[str]): List of A3M file paths.
+        query_hashes (List[str]): List of query hashes.
+
+    Returns:
+        Dict[str, str]: Dictionary mapping query hash and hit accession to A3M records.
+    """
     query_hash_colon_hit_to_a3m = {}
     for query_hash in query_hashes:
         for a3m_file in a3m_files:
@@ -54,7 +86,17 @@ def get_query_to_a3m_records(a3m_files: List[str], query_hashes: List[str]) -> D
 
 def make_alignment_pair(query_colon_hits: List[str], input_query_feats: Infile_feats,
                                a3m_records: Dict[str, str]) -> tuple[List[Sequence], List[str]]:
+    """
+    Create alignment pairs from query hits and input query features.
 
+    Args:
+        query_colon_hits (List[str]): List of query hits in the format 'query:hit'.
+        input_query_feats (Infile_feats): Input query features.
+        a3m_records (Dict[str, str]): Dictionary of A3M records.
+
+    Returns:
+        tuple[List[Sequence], List[str]]: A tuple containing a list of sequences and a list of A3M record keys.
+    """
     query_hashes = input_query_feats.chain_seq_hashes
     gappy_seq_limit = len(query_hashes) - 1
 
@@ -111,6 +153,15 @@ def make_alignment_pair(query_colon_hits: List[str], input_query_feats: Infile_f
 
 
 def introduce_gap_in_subunit(subunit_seq: List[str]) -> List[List[str]]:
+    """
+    Introduce gaps in subunit sequences.
+
+    Args:
+        subunit_seq (List[str]): List of subunit sequences.
+
+    Returns:
+        List[List[str]]: List of subunit sequences with gaps introduced.
+    """
     placeholder = "-"
     # Generate combinations
     combinations = []
@@ -127,6 +178,18 @@ def introduce_gap_in_subunit(subunit_seq: List[str]) -> List[List[str]]:
 
 def create_a3m_for_folding(summary_json: str, a3m_records: Dict[str, str],
                            query_fasta: Infile_feats, out_path: str) -> None:
+    """
+    Create A3M files for folding.
+
+    Args:
+        summary_json (str): Path to the summary JSON file.
+        a3m_records (Dict[str, str]): Dictionary of A3M records.
+        query_fasta (Infile_feats): Input query features.
+        out_path (str): Output directory path.
+
+    Returns:
+        None
+    """
     chain_subunit_accessions = query_fasta.chain_accnrs
 
     chain_subunit_mod_accessions = []
@@ -188,7 +251,7 @@ def create_a3m_for_folding(summary_json: str, a3m_records: Dict[str, str],
             query_hash_value, hit_accession = query_hash_colon_hit.split(":", 1)
             if query_hash_value == chain_seq_hashes[0]:
                 sequence = a3m_records[query_hash_colon_hit]
-                fasta_sequence = make_fasta_sequence(hit_accession, sequence)
+                fasta_sequence = make_hash_fasta_sequence(hit_accession, sequence)
                 if fasta_sequence.hash not in a3m_alignment_hashes:
                     a3m_alignments.append(fasta_sequence.fasta)
                     a3m_alignment_hashes.add(fasta_sequence.hash)
