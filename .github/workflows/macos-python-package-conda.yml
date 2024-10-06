@@ -6,6 +6,8 @@ jobs:
   build-macos:
     runs-on: macos-latest
     strategy:
+      matrix:
+        python-version: [3.10]
       max-parallel: 5
 
     steps:
@@ -14,10 +16,11 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: '3.10'
-    - name: Add conda to system path
+    - name: Install conda
       run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
+        wget -q -P . https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh
+        bash ./Miniforge3-MacOSX-arm64.sh -b -u -p ./miniforge3
+        rm ./Miniforge3-MacOSX-arm64.sh
     - name: Install dependencies with brew
       run: |
         brew install wget
