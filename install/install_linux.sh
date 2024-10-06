@@ -7,7 +7,6 @@ FLASHFOLD_ENV_NAME="flashfold"
 FLASHFOLD_CONDA_ENV_DIR="${CURRENT_CONDA_PATH}/envs/${FLASHFOLD_ENV_NAME}"
 
 conda env update -f "${ENV_YML_FILE_PATH}"
-conda activate "${FLASHFOLD_ENV_NAME}"
 
 # Download the updater
 wget -qnc -O "$FLASHFOLD_CONDA_ENV_DIR/update_linux.sh" \

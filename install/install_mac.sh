@@ -7,6 +7,7 @@ type kalign 2>/dev/null || { echo -e "Please install kalign using Homebrew:\n\tb
 type mmseqs 2>/dev/null || { echo -e "Please install mmseqs2 using Homebrew:\n\tbrew install mmseqs2" ; exit 1 ; }
 type jackhmmer 2>/dev/null || { echo -e "Please install jackhmmer using Homebrew:\n\tbrew install hmmer" ; exit 1 ; }
 
+ulimit -n 99999
 CURRENT_PATH="$(pwd)"
 CURRENT_CONDA_PATH=$(conda info --base)
 ENV_YML_FILE_PATH="${CURRENT_PATH}/envs/mac-environment.yml"
@@ -14,8 +15,6 @@ FLASHFOLD_ENV_NAME="flashfold"
 FLASHFOLD_CONDA_ENV_DIR="${CURRENT_CONDA_PATH}/envs/${FLASHFOLD_ENV_NAME}"
 
 conda env update -f "${ENV_YML_FILE_PATH}"
-conda activate "${FLASHFOLD_ENV_NAME}"
-
 
 # Download the updater
 wget -qnc -O "$FLASHFOLD_CONDA_ENV_DIR/update_M1mac.sh" \
