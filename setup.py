@@ -12,22 +12,15 @@ setup(
         'numpy~=1.26.4',
         'pandas~=2.2.2',
         'requests~=2.32.3',
-        'tqdm~=4.66.5'
+        'tqdm~=4.66.5',
+        'colabfold[alphafold]',
+        'jax[cuda12]==0.4.28',
+        'tensorflow',
+        'silence_tensorflow'
     ],
-    dependency_links=[
-        'git+https://github.com/sokrypton/ColabFold#egg=colabfold[alphafold]',
-        'https://storage.googleapis.com/jax-releases/jax_cuda_releases.html'
-    ],
-    extras_require={
-        'full': [
-            'colabfold[alphafold] @ git+https://github.com/sokrypton/ColabFold',
-            'jax[cuda]>=0.3.8,<0.4',
-            'kalign2==2.04',
-            'hhsuite==3.3.0',
-            'hmmer',
-            'openmm==8.0.0',
-            'perl==5.32.1'
-            'pdbfixer'
+    entry_points={
+        'console_scripts': [
+            'flashfold = flashfold.main:main'
         ]
     },
     classifiers=[
