@@ -17,5 +17,13 @@ dependencies:
   - hmmer
   - pip
   - pip:
-      - colabfold[alphafold] @ git+https://github.com/sokrypton/ColabFold
-      - jax[cuda]>=0.3.8,<0.4
+      - colabfold[alphafold]
+      - jax[cuda12]==0.4.28
+      - tensorflow
+      - silence_tensorflow
+      - setuptools~=69.0.3
+      - wget~=3.2
+      - ujson~=5.10.0
+      - numpy~=1.26.4
+      - requests~=2.32.3
+      - tqdm~=4.66.5
