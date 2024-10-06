@@ -1,20 +1,13 @@
 #!/bin/bash -e
 
-CURRENTPATH="$(pwd)"
+CURRENTPATH=`pwd`
+CURRENT_CONDA_PATH=$(conda info --base)
 ENV_YML_FILE_PATH="${CURRENTPATH}/envs/linux-environment.yml"
-FLASHFOLD_CONDA_ENV_DIR="${CURRENTPATH}/src/foldflash/.env"
-FLASHFOLD_ENV_NAME="foldflash"
-FLASHFOLD_ENV_SITE_PACKAGES="${FLASHFOLD_CONDA_ENV_DIR}/conda/envs/${FLASHFOLD_ENV_NAME}/lib/python3.10/site-packages/"
+FLASHFOLD_ENV_NAME="flashfold"
+FLASHFOLD_CONDA_ENV_DIR="${CURRENT_CONDA_PATH}/envs/${FLASHFOLD_ENV_NAME}"
+FLASHFOLD_ENV_SITE_PACKAGES="${FLASHFOLD_CONDA_ENV_DIR}/lib/python3.10/site-packages/"
 
-mkdir -p "${FLASHFOLD_CONDA_ENV_DIR}"
-cd "${FLASHFOLD_CONDA_ENV_DIR}"
-wget -q -P . https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
-bash ./Mambaforge-Linux-x86_64.sh -b -u -p "${FLASHFOLD_CONDA_ENV_DIR}/conda"
-rm $${FLASHFOLD_CONDA_ENV_DIR}/Mambaforge-Linux-x86_64.sh
 
-source "${FLASHFOLD_CONDA_ENV_DIR}/conda/etc/profile.d/conda.sh"
-export PATH="${FLASHFOLD_CONDA_ENV_DIR}/conda/condabin:${PATH}"
-conda update -n base conda -y
 conda env create -f "${ENV_YML_FILE_PATH}"
 conda activate "${FLASHFOLD_ENV_NAME}"
 
@@ -36,7 +29,7 @@ rm -rf __pycache__
 popd
 
 # Download weights
-"$FLASHFOLD_CONDA_ENV_DIR/conda/envs/$FLASHFOLD_ENV_NAME/bin/python3" -m colabfold.download
+"$FLASHFOLD_CONDA_ENV_DIR/bin/python3" -m colabfold.download
 echo "Download of alphafold2 weights finished."
 echo "-----------------------------------------"
 echo "Installation of FoldFlash finished."
