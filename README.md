@@ -7,11 +7,11 @@ A tool for protein and protein complex structure prediction.
 
 
 ### Step 1: Install Conda
-First, we need to make sure that we have Conda installed. It can be downloaded and installed from [Anaconda](https://www.anaconda.com/products/distribution) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
-
-Or, one can use the following command:
+First, we need to make sure that we have Conda installed. It can be downloaded and installed from 
+[Anaconda](https://www.anaconda.com/products/distribution) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+Or, one can use the following commands to install Miniforge or Mambaforge (a minimal installer for conda) 
+for Linux and MacOS (Silicon and Intel) platforms:
 ```sh
-
 #For Linux
 wget -q -P . https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
 bash ./Mambaforge-Linux-x86_64.sh -b
@@ -23,9 +23,7 @@ bash ./Miniforge3-MacOSX-arm64.sh -b
 #For MacOS (Intel)
 wget -q -P . https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-MacOSX-x86_64.sh
 bash ./Mambaforge-MacOSX-x86_64.sh -b
-
 ```
-
 
 ### Step 2: Clone the Repository
 ```sh
@@ -33,15 +31,11 @@ git clone https://github.com/chayan7/flashfold.git
 cd flashfold
 ```
 
-### Step 3: Create and Activate the Conda Environment
+### Step 3: Install dependencies under Conda Environment
 
-#### Linux
+#### Create conda environment: flashfold
 ```sh
-conda env update -f envs/linux-environment.yml
-```
-#### MacOS
-```sh
-conda env update -f envs/mac-silicon-environment.yml
+bash install.sh
 ```
 #### Activate the environment
 ```sh
