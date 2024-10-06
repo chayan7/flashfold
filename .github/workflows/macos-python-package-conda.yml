@@ -18,9 +18,14 @@ jobs:
         python-version: '3.10'
     - name: Install conda
       run: |
+        ulimit -n 99999
+        CURRENTPATH="$(pwd)"
+        FOLDFLASH_CONDA_ENV_DIR="${CURRENTPATH}/.env"
         wget -q -P . https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh
-        bash ./Miniforge3-MacOSX-arm64.sh -b -u -p ./miniforge3
+        bash ./Miniforge3-MacOSX-arm64.sh -b -u -y -p "${FOLDFLASH_CONDA_ENV_DIR}"
         rm ./Miniforge3-MacOSX-arm64.sh
+        source "${FOLDFLASH_CONDA_ENV_DIR}/conda/etc/profile.d/conda.sh"
+        export PATH="${FOLDFLASH_CONDA_ENV_DIR}/conda/condabin:${PATH}"
     - name: Install dependencies with brew
       run: |
         brew install wget
