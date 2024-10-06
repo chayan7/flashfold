@@ -42,13 +42,13 @@ def is_valid_database_dir(database_dir: str) -> bool:
         filename_to_path = get_filename_to_path_set_by_directory(database_dir, [".json", ".fasta"])
         if not is_valid_database_file_count(files_to_be_in_database, filename_to_path):
             print(f"Invalid sequence database detected, check: {database_dir} "
-                  f"\nTo create database please use the create_db command provided with foldflash.")
+                  f"\nTo create database please use the create_db command provided with flashfold.")
             return False
         else:
             return True
     else:
         print(f"Invalid sequence database detected, check: {database_dir} "
-              f"\nTo create database please use the create_db command provided with foldflash.")
+              f"\nTo create database please use the create_db command provided with flashfold.")
         return False
 
 

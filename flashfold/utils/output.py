@@ -5,9 +5,9 @@ from .util import is_valid_path, remove_all_contents_in_directory
 
 def manage_output_path(out_path: str, overwrite: bool) -> str:
     """
-    Manage the output path for the foldflash results.
+    Manage the output path for the flashfold results.
     Args:
-        out_path: The output path for the foldflash results.
+        out_path: The output path for the flashfold results.
         overwrite: A boolean value indicating if the existing results should be overwritten or not.
 
     Returns:
@@ -20,7 +20,7 @@ def manage_output_path(out_path: str, overwrite: bool) -> str:
         return os.path.abspath(out_path)
     else:
         if not os.path.isdir(out_path):
-            raise ValueError(f"Use a valid path for foldflash output. Current input: '{out_path}' is not a directory.")
+            raise ValueError(f"Use a valid path for flashfold output. Current input: '{out_path}' is not a directory.")
         else:
             # List the directory contents; True if the directory is empty, False otherwise.
             if not any(os.scandir(out_path)):
@@ -31,6 +31,6 @@ def manage_output_path(out_path: str, overwrite: bool) -> str:
                           f"Use '--overwrite_existing_results true' option to run again.")
                     sys.exit()
                 else:
-                    # Maybe later remove selective contents; for example foldflash_msa can be kept
+                    # Maybe later remove selective contents; for example flashfold_msa can be kept
                     remove_all_contents_in_directory(out_path)
                     return os.path.abspath(out_path)

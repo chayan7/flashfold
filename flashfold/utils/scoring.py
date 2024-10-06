@@ -267,7 +267,7 @@ def generate_score_matrix(path_to_predicted_structure: str, cutoff: float, is_mo
         chain_number = len(length)
         if chain_number < 2:
             print(f'Warning: pDockQ2 score is not calculated because predicted pdb file contains {chain_number} '
-                  f'chain. FoldFlash currently offers calculation when the pdb file contains at least two chains.\n')
+                  f'chain. FlashFold currently offers calculation when the pdb file contains at least two chains.\n')
             sys.exit()
 
         mean_pdockq = sum(pdockq) / len(pdockq)

@@ -26,14 +26,14 @@ def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu:
     
     # Time_log
     time_log_file = os.path.join(parent_result_path, "timings.txt")
-    initial_msg = f"-- FoldFlash analysis began at: {current_time()}"
+    initial_msg = f"-- FlashFold analysis began at: {current_time()}"
     update_time_log(time_log_file, initial_msg, False)
 
     # Load sequence database
     sequence_database = Database(database_path)
 
     # Make fasta files for homology search
-    child_fasta_path = os.path.join(parent_result_path, "foldflash_fasta")
+    child_fasta_path = os.path.join(parent_result_path, "flashfold_fasta")
     create_new_directory(child_fasta_path)
     hash_to_fasta = query_fasta_features.hash_to_fasta
     unique_fasta_file_path = []
@@ -44,25 +44,25 @@ def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu:
             print(hash_to_fasta[hash_id], file=fasta_file_out)
         unique_fasta_file_path.append(write_fasta)
 
-    # Run homology searching against foldflash databases
+    # Run homology searching against flashfold databases
     jackhmmer_is_installed = is_installed("jackhmmer")
     if not jackhmmer_is_installed:
-        print("Missing Jackhmmer in system path: it is recommended to reinstall and run foldflash afterwards.")
+        print("Missing Jackhmmer in system path: it is recommended to reinstall and run flashfold afterwards.")
         sys.exit()
 
     perl_is_installed = is_installed("perl")
     if not perl_is_installed:
-        print("Missing Perl in system path: it is recommended to reinstall and run foldflash afterwards.")
+        print("Missing Perl in system path: it is recommended to reinstall and run flashfold afterwards.")
         sys.exit()
 
-    child_alignment_path = os.path.join(parent_result_path, "foldflash_msa")
+    child_alignment_path = os.path.join(parent_result_path, "flashfold_msa")
     create_new_directory(child_alignment_path)
     run_jackhmmer(unique_fasta_file_path, sequence_database.fasta_db, cpu, child_alignment_path)
 
     # Process homology search output
     process_time = current_time()
     print(f"\n-- {process_time} > Processing alignment for structure prediction")
-    alignment_path = os.path.join(parent_result_path, "foldflash_msa")
+    alignment_path = os.path.join(parent_result_path, "flashfold_msa")
     homology_summary_json_file = os.path.join(alignment_path, "homology_summary.json")
     sequence_database.process_homology_search_output(alignment_path, query_fasta_features.chain_seq_hashes,
                                                      homology_summary_json_file)
@@ -70,7 +70,7 @@ def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu:
     # Make combined alignment file
     a3m_files = get_files_from_path_by_extension(alignment_path, ".a3m")
     a3m_records = get_query_to_a3m_records(a3m_files, query_fasta_features.chain_seq_hashes)
-    concat_a3m_path = os.path.join(parent_result_path, "foldflash_concatenated")
+    concat_a3m_path = os.path.join(parent_result_path, "flashfold_concatenated")
     create_new_directory(concat_a3m_path)
     create_a3m_for_folding(homology_summary_json_file, a3m_records, query_fasta_features, concat_a3m_path)
     update_time_log(time_log_file, "Completed Step 1: Alignment", True)
@@ -78,12 +78,12 @@ def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu:
     # Run_colabfold
     colabfold_is_installed = is_installed("colabfold_batch")
     if not colabfold_is_installed:
-        print("Missing colabfold_batch: it is recommended to reinstall and run foldflash afterwards.")
+        print("Missing colabfold_batch: it is recommended to reinstall and run flashfold afterwards.")
         sys.exit()
 
     a3m_file_name = join_list_elements_by_character(query_fasta_features.accnrs, "-")
     combined_homology_search_output = os.path.join(concat_a3m_path, f"{a3m_file_name}.a3m")
-    structure_prediction_out_path = os.path.join(parent_result_path, "foldflash_predicted_structure")
+    structure_prediction_out_path = os.path.join(parent_result_path, "flashfold_predicted_structure")
     create_new_directory(structure_prediction_out_path)
     run_colabfold(is_monomer, combined_homology_search_output, structure_prediction_out_path, num_models,
                   num_recycle, stop_at_score, num_top, relax_max_iterations)
