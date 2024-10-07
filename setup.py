@@ -13,6 +13,7 @@ class CustomInstallCommand(install, Command):
             raise
         install.run(self)
 
+
 command_class = {"install": CustomInstallCommand}
 
 setup(
@@ -21,6 +22,7 @@ setup(
     version='1.0.0',
     author='Chayan Kumar Saha',
     author_email='chayan_saha@outlook.com',
+    download_url="https://github.com/chayan7/flashfold.git",
     license='MIT',
     packages=find_packages(),
     entry_points={
