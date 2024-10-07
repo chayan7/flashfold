@@ -9,7 +9,8 @@ A tool for protein and protein complex structure prediction.
 ### Step 1: Install Conda
 First, we need to make sure that we have Conda installed. It can be downloaded and installed from 
 [Anaconda](https://www.anaconda.com/products/distribution) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
-Or, one can use the following commands to install Miniforge or Mambaforge (a minimal installer for conda) 
+
+Or, one can use the following commands (recommended) to install Miniforge or Mambaforge (a minimal installer for conda) 
 for Linux and MacOS (Silicon and Intel) platforms:
 ```sh
 #For Linux
@@ -44,6 +45,7 @@ conda activate flashfold
 
 ### Step 4: Install the Python Package
 ```sh
+python -m pip install --upgrade pip
 pip install -e .
 ```
 

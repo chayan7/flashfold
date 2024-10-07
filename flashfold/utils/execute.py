@@ -152,7 +152,7 @@ def run_single_job_with_progress(job: str, steps: int, intervals: int, job_name:
 
     # Use subprocess.Popen to run the command
     try:
-        print(f'\n-- {current_time()} > {job_name} is being processed')
+        print(f'\n-- {current_time()} > {job_name} is being processed\n')
         total_count = steps*intervals
         description = "\tPrediction-recycle progress"
         progress_bar = tqdm(total=steps, desc=description, unit="%", ncols=80, delay=1,
@@ -181,4 +181,4 @@ def run_single_job_with_progress(job: str, steps: int, intervals: int, job_name:
     except subprocess.CalledProcessError as e:
         print('Error running command:', str(e))
 
-    print(f'-- {current_time()} > {job_name} has been completed \n')
+    print(f'\n-- {current_time()} > {job_name} has been completed \n')

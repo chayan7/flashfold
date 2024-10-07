@@ -23,6 +23,7 @@ dependencies:
       - tensorflow
       - silence_tensorflow
       - setuptools~=69.0.3
+      - pyinstaller
       - wget~=3.2
       - ujson~=5.10.0
       - numpy~=1.26.4

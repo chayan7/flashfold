@@ -66,7 +66,6 @@ if [ "$machine" == "Mac" ]; then
     check_and_install wget wget
     check_and_install hhsearch brewsci/bio/hh-suite
     check_and_install kalign kalign
-    check_and_install mmseqs mmseqs2
     check_and_install jackhmmer hmmer
 fi
 
@@ -113,4 +112,4 @@ fi
 "${FLASHFOLD_CONDA_ENV_DIR}/bin/python3" -m colabfold.download
 echo "Download of alphafold2 weights finished."
 echo "-----------------------------------------"
-echo "Installation of FlashFold dependencies is complete."
+echo -e "\nInstallation of FlashFold dependencies is complete.\n"

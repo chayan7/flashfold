@@ -5,8 +5,12 @@ import subprocess
 
 class CustomInstallCommand(install, Command):
     def run(self) -> None:
-        # Install dependencies
-        subprocess.check_call(["sh", "install.sh"])
+        try:
+            # Install dependencies
+            subprocess.check_call(["bash", "install.sh"])
+        except subprocess.CalledProcessError as e:
+            print(f"An error occurred while running install.sh: {e}")
+            raise
         install.run(self)
 
 command_class = {"install": CustomInstallCommand}
@@ -21,7 +25,7 @@ setup(
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'flashfold = flashfold.main:main'
+            'flashfold = bin.flashfold:main'
         ]
     },
     zip_safe=False,
@@ -35,5 +39,6 @@ setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Development Status :: 4 - Beta",
     ],
+    scripts=['bin/flashfold'],
     python_requires='>=3.6',
 )

@@ -11,6 +11,7 @@ dependencies:
   - pdbfixer==1.9
   - perl
   - ncbi-datasets-cli
+  - mmseqs2=15.6f452
   - pip
   - pip:
       - colabfold[alphafold] @ git+https://github.com/sokrypton/ColabFold
@@ -19,6 +20,7 @@ dependencies:
       - colabfold[alphafold]
       - silence_tensorflow
       - setuptools~=69.0.3
+      - pyinstaller
       - wget~=3.2
       - ujson~=5.10.0
       - numpy~=1.26.4

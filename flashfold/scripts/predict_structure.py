@@ -18,6 +18,8 @@ def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu:
     if not is_valid_protein_fasta(fasta_file) or not is_valid_database_dir(database_path):
         sys.exit()
 
+    package_root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
     input_fasta_records = get_valid_sequence_records_from_fasta(fasta_file)
     query_fasta_features = get_input_fasta_features(input_fasta_records)
     is_monomer = len(query_fasta_features.seqs) == 1
@@ -54,14 +56,15 @@ def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu:
     if not perl_is_installed:
         print("Missing Perl in system path: it is recommended to reinstall and run flashfold afterwards.")
         sys.exit()
-
+    path_reformat_script = os.path.join(package_root_dir, "extra", "reformat.pl")
     child_alignment_path = os.path.join(parent_result_path, "flashfold_msa")
     create_new_directory(child_alignment_path)
-    run_jackhmmer(unique_fasta_file_path, sequence_database.fasta_db, cpu, child_alignment_path)
+
+    run_jackhmmer(path_reformat_script, unique_fasta_file_path, sequence_database.fasta_db, cpu, child_alignment_path)
 
     # Process homology search output
     process_time = current_time()
-    print(f"\n-- {process_time} > Processing alignment for structure prediction")
+    print(f"\n-- {process_time} > Selecting the best homologue sequences for structure prediction")
     alignment_path = os.path.join(parent_result_path, "flashfold_msa")
     homology_summary_json_file = os.path.join(alignment_path, "homology_summary.json")
     sequence_database.process_homology_search_output(alignment_path, query_fasta_features.chain_seq_hashes,
@@ -70,9 +73,9 @@ def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu:
     # Make combined alignment file
     a3m_files = get_files_from_path_by_extension(alignment_path, ".a3m")
     a3m_records = get_query_to_a3m_records(a3m_files, query_fasta_features.chain_seq_hashes)
-    concat_a3m_path = os.path.join(parent_result_path, "flashfold_concatenated")
-    create_new_directory(concat_a3m_path)
-    create_a3m_for_folding(homology_summary_json_file, a3m_records, query_fasta_features, concat_a3m_path)
+    filtered_a3m_path = os.path.join(parent_result_path, "flashfold_filtered")
+    create_new_directory(filtered_a3m_path)
+    create_a3m_for_folding(homology_summary_json_file, a3m_records, query_fasta_features, filtered_a3m_path)
     update_time_log(time_log_file, "Completed Step 1: Alignment", True)
 
     # Run_colabfold
@@ -82,7 +85,7 @@ def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu:
         sys.exit()
 
     a3m_file_name = join_list_elements_by_character(query_fasta_features.accnrs, "-")
-    combined_homology_search_output = os.path.join(concat_a3m_path, f"{a3m_file_name}.a3m")
+    combined_homology_search_output = os.path.join(filtered_a3m_path, f"{a3m_file_name}.a3m")
     structure_prediction_out_path = os.path.join(parent_result_path, "flashfold_predicted_structure")
     create_new_directory(structure_prediction_out_path)
     run_colabfold(is_monomer, combined_homology_search_output, structure_prediction_out_path, num_models,

@@ -8,11 +8,12 @@ from .json import load_json_file
 from .execute import run_jobs_in_parallel
 
 
-def run_jackhmmer(fasta_files: list, database_fasta: str, cpu: int, out_path: str) -> None:
+def run_jackhmmer(reformat_perl_path: str, fasta_files: list, database_fasta: str, cpu: int, out_path: str) -> None:
     """
     Run jackhmmer for homology searching.
 
     Args:
+        reformat_perl_path (str): Path to the reformat.pl script.
         fasta_files (list): List of paths to FASTA files.
         database_fasta (str): Path to the database FASTA file.
         cpu (int): Number of CPU cores to use.
@@ -33,11 +34,11 @@ def run_jackhmmer(fasta_files: list, database_fasta: str, cpu: int, out_path: st
         sto_command = ("jackhmmer --noali --F1 0.0005 --F2 0.00005 --F3 0.0000005 --incE 0.0001 -E 0.0001 -N 1 "
                        "-o /dev/null --cpu %s -A %s %s %s" % (n_threads, sto_file_path, fasta_file, database_fasta))
         jackhmmer_commands.append(sto_command)
-        sto_to_a3m_command = ("perl extra/reformat.pl sto a3m %s %s > /dev/null" % (sto_file_path, a3m_file_path))
+        sto_to_a3m_command = ("perl %s sto a3m %s %s > /dev/null" % (reformat_perl_path, sto_file_path, a3m_file_path))
         sto_to_a3m_commands.append(sto_to_a3m_command)
 
     run_jobs_in_parallel(cpu, jackhmmer_commands, "Homology searching")
-    run_jobs_in_parallel(cpu, sto_to_a3m_commands, "Alignment formatting")
+    run_jobs_in_parallel(cpu, sto_to_a3m_commands, "Alignment reformatting")
 
 
 def has_good_coverage(sequence: str, coverage: float = 0.5) -> bool:
@@ -265,5 +266,6 @@ def create_a3m_for_folding(summary_json: str, a3m_records: Dict[str, str],
             # noinspection PyTypeChecker
             print(seq_aln.rstrip(), file=con_out)
     end_time = current_time()
-    print(f"-- {end_time} > Finished preparation for structure prediction, check: \n\t{concat_filepath}\n")
+    print(f"-- {end_time} > Completed selection and processing of the best homologue sequences, "
+          f"check: \n\t{concat_filepath}\n")
     return None
