@@ -107,6 +107,27 @@ def create_batches(main_set_of_items: list, max_items_per_batch: int) -> list:
     return subsets
 
 
+def parse_source(source: str) -> str:
+    """
+    Parses the source parameter and returns the corresponding source database name.
+
+    Args:
+        source (str): The source parameter provided by the user.
+
+    Returns:
+        str: The name of the source database.
+
+    Raises:
+        argparse.ArgumentTypeError: If the source parameter is invalid.
+    """
+    if source == 'refseq':
+        return 'RefSeq'
+    elif source == 'genbank':
+        return 'GenBank'
+    else:
+        return source
+
+
 def parse_formats(input_formats: str) -> List[str]:
     """
     Parses a comma-separated string of file formats and validates them against a list of valid formats.
@@ -190,6 +211,7 @@ format_to_file_ext = {
 
 
 def download_ncbi_data(args) -> None:
+
     today = datetime.date.today()
     output_directory = get_output_dir_path(args.output)
 
@@ -209,7 +231,8 @@ def download_ncbi_data(args) -> None:
         summary_file_path = os.path.join(output_directory, "summary.tsv")
         summary_fields = (f"accession,organism-name,organism-tax-id,assminfo-level,checkm-completeness,"
                           f"assminfo-release-date,checkm-completeness,source_database")
-        summary_command = (f"datasets summary genome taxon '{args.name}' --assembly-source {args.source} "
+        source = parse_source(args.source)
+        summary_command = (f"datasets summary genome taxon '{args.name}' --assembly-source {source} "
                            f"--as-json-lines {api_key_parameter} | dataformat tsv genome --fields {summary_fields} "
                            f"> {summary_file_path}")
         try:
@@ -275,4 +298,3 @@ def download_ncbi_data(args) -> None:
     shutil.rmtree(temp_dir)
     print("Done!" if accession_counter == len(assembly_accessions) else "Completed with some error!")
     return None
-

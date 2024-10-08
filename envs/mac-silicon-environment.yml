@@ -20,6 +20,7 @@ dependencies:
       - colabfold[alphafold]
       - silence_tensorflow
       - setuptools~=69.0.3
+      - poetry
       - pyinstaller
       - wget~=3.2
       - ujson~=5.10.0

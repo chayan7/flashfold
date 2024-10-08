@@ -9,21 +9,18 @@ from flashfold.utils import is_valid_protein_fasta, is_valid_database_dir, manag
     get_query_to_a3m_records, generate_score_matrix
 
 
-def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu: int, num_models: int, num_recycle: int,
-                         stop_at_score: int, num_top: int, relax_max_iterations: int,
-                         overwrite_existing_results: bool, cutoff: float) -> None:
-
+def predict_3d_structure(args) -> None:
+    fasta_file = args.query
+    database_path = args.database
     prediction_start_time = current_time_raw()
 
     if not is_valid_protein_fasta(fasta_file) or not is_valid_database_dir(database_path):
         sys.exit()
 
-    package_root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
     input_fasta_records = get_valid_sequence_records_from_fasta(fasta_file)
     query_fasta_features = get_input_fasta_features(input_fasta_records)
     is_monomer = len(query_fasta_features.seqs) == 1
-    parent_result_path = manage_output_path(out_dir, overwrite_existing_results)
+    parent_result_path = manage_output_path(args.output, args.overwrite_existing_results)
     create_new_directory(parent_result_path)
     
     # Time_log
@@ -56,11 +53,11 @@ def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu:
     if not perl_is_installed:
         print("Missing Perl in system path: it is recommended to reinstall and run flashfold afterwards.")
         sys.exit()
-    path_reformat_script = os.path.join(package_root_dir, "extra", "reformat.pl")
+
     child_alignment_path = os.path.join(parent_result_path, "flashfold_msa")
     create_new_directory(child_alignment_path)
 
-    run_jackhmmer(path_reformat_script, unique_fasta_file_path, sequence_database.fasta_db, cpu, child_alignment_path)
+    run_jackhmmer(unique_fasta_file_path, sequence_database.fasta_db, args.threads, child_alignment_path)
 
     # Process homology search output
     process_time = current_time()
@@ -88,10 +85,10 @@ def predict_3d_structure(fasta_file: str, database_path: str, out_dir: str, cpu:
     combined_homology_search_output = os.path.join(filtered_a3m_path, f"{a3m_file_name}.a3m")
     structure_prediction_out_path = os.path.join(parent_result_path, "flashfold_predicted_structure")
     create_new_directory(structure_prediction_out_path)
-    run_colabfold(is_monomer, combined_homology_search_output, structure_prediction_out_path, num_models,
-                  num_recycle, stop_at_score, num_top, relax_max_iterations)
+    run_colabfold(is_monomer, combined_homology_search_output, structure_prediction_out_path, args.num_models,
+                  args.num_recycle, args.stop_at_score, args.num_structure_relax, args.relax_max_iterations)
     update_time_log(time_log_file, "Completed Step 2: Structure prediction", True)
-    generate_score_matrix(structure_prediction_out_path, cutoff, is_monomer)
+    generate_score_matrix(structure_prediction_out_path, args.cutoff, is_monomer)
     update_time_log(time_log_file, "Completed Step 3: Scoring", True)
     prediction_end_time = current_time_raw()
     prediction_duration = prediction_end_time - prediction_start_time

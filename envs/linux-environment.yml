@@ -9,9 +9,9 @@ dependencies:
   - python=3.10
   - openmm==7.7.0 
   - pdbfixer
-  - kalign2=2.04 
-  - hhsuite=3.3.0
-  - mmseqs2=15.6f452
+  - kalign2==2.04
+  - hhsuite==3.3.0
+  - mmseqs2==15.6f452
   - perl
   - ncbi-datasets-cli
   - hmmer
@@ -24,6 +24,7 @@ dependencies:
       - silence_tensorflow
       - setuptools~=69.0.3
       - pyinstaller
+      - poetry
       - wget~=3.2
       - ujson~=5.10.0
       - numpy~=1.26.4

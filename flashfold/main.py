@@ -1,7 +1,8 @@
 import argparse
-from flashfold.scripts import create_protein_db_from_gbk, download_representative_db, predict_3d_structure, \
-    extend_main_sequence_db
+from flashfold.scripts import create_protein_db_from_gbk, download_database_from_cloud, predict_3d_structure, \
+    extend_main_sequence_db, download_ncbi_data, parse_formats
 from flashfold.utils import is_zero_or_pos_int, is_pos_int
+
 
 def main() -> None:
     # Create the main parser
@@ -26,7 +27,7 @@ def main() -> None:
     extend_db = subparsers.add_parser('extend_db', description=desc_extend_db)
     extend_db.add_argument("-m", "--main_db", metavar="<Database_Dir>", required=True,
                            help="path to the main database, which will be extended with new information")
-    # # Create a mutually exclusive group for -n and -g
+    # Create a mutually exclusive group for -n and -g
     group = extend_db.add_mutually_exclusive_group(required=True)
     group.add_argument("-g", "--genbank_path", metavar="<Genbank_Dir>",
                        help="path to the directory that contains genbank file(s), will be used to "
@@ -35,10 +36,50 @@ def main() -> None:
                        help="path to the new database that will be added to the main database")
 
     # command download_db parser
-    desc_download_db = ''' Download representative database. '''
+    desc_download_db = ''' Download database required for FlashFold prediction. '''
     download_db = subparsers.add_parser('download_db', description=desc_download_db)
-    download_db.add_argument("-p", "--path", metavar="<Output_Dir>", required=True,
+    download_db.add_argument("-i", "--input", metavar="<FILE_In>", required=True,
+                             help="path to the JSON (database.json) file that contains the download links")
+    download_db.add_argument("-o", "--output", metavar="<Output_Dir>", required=True,
                              help="path to store the database built from representative sequence")
+
+    # command ncbi_data parser
+    desc_ncbi_data = '''
+        Description: 
+
+            This aims to retrieve genome assembly data from NCBI. 
+            Users can download the data in the following formats:
+            (1) genome - Genomic sequences
+            (2) protein - Amino acid sequences
+            (3) cds - Nucleotide coding sequences
+            (4) gff3 - General feature file (GFF3)
+            (5) gtf - Gene transfer format (GTF)
+            (6) gbff - GenBank flat file (GBFF)
+            (7) all - All the above formats.
+            For FlashFold, only the GenBank or 'gbff' format is required.
+        '''
+
+    ncbi_data = subparsers.add_parser('ncbi_data', description=desc_ncbi_data)
+
+    ncbi_data.add_argument("-a", "--api-key", metavar="<String>", help="Specify an NCBI API key. "
+                                                                       "To get this key kindly check: https://"
+                                                                       "ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/"
+                                                                       "new-api-keys-for-the-e-utilities/")
+
+    # Create a mutually exclusive group for -i and -n
+    group = ncbi_data.add_mutually_exclusive_group(required=True)
+    group.add_argument("-i", "--input", metavar="<FILE_In>",
+                       help="a text file that contains one NCBI assembly accession per line.")
+    group.add_argument("-n", "--name", metavar="<String>",
+                       help="name of organism eg., 'Pseudomonas aeruginosa' etc.")
+    ncbi_data.add_argument("-f", "--format", metavar="<String>", type=parse_formats, required=True,
+                           help="file format to be downloaded (comma-separated for multiple). "
+                                "Valid options: 'genome', 'protein', 'cds', 'gff3', 'gtf', 'gbff', 'all'.")
+    ncbi_data.add_argument("-o", "--output", metavar="<Output_Dir>", required=True,
+                           help="path that will contain output.")
+    ncbi_data.add_argument("-s", "--source", metavar="<String>", choices=['refseq', 'genbank', 'all'],
+                           default='all', help="assembly source selection. Valid options: 'refseq', 'genbank' or 'all' "
+                                               "(default).")
 
     # command predict_3d parser
     desc_fold = ''' Predict structure from FASTA sequence. '''
@@ -74,15 +115,15 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "create_db":
-        create_protein_db_from_gbk(args.output, args.path)
+        create_protein_db_from_gbk(args)
     elif args.command == "extend_db":
-        extend_main_sequence_db(args.main_db, args.genbank_path, args.new_db)
+        extend_main_sequence_db(args)
     elif args.command == "download_db":
-        download_representative_db(args.path)
+        download_database_from_cloud(args)
+    elif args.command == "ncbi_data":
+        download_ncbi_data(args)
     elif args.command == "fold":
-        predict_3d_structure(args.query, args.database, args.output, args.threads, args.num_models,
-                             args.num_recycle, args.stop_at_score, args.num_structure_relax, args.relax_max_iterations,
-                             args.overwrite_existing_results, args.cutoff)
+        predict_3d_structure(args)
     else:
         parser.print_help()
 

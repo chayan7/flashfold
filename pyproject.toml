@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "flashfold"
+version = "1.0.0"
+description = "A tool for protein and protein complex structure prediction."
+authors = ["chayan7 <chayan_saha@outlook.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.scripts]
+flashfold = "flashfold.main:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

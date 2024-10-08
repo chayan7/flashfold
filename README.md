@@ -45,8 +45,7 @@ conda activate flashfold
 
 ### Step 4: Install the Python Package
 ```sh
-python -m pip install --upgrade pip
-pip install -e .
+poetry install
 ```
 
 [![Linux Python Package using Conda](https://github.com/chayan7/flashfold/actions/workflows/linux-python-package-conda.yml/badge.svg?event=push)](https://github.com/chayan7/flashfold/actions/workflows/linux-python-package-conda.yml)

@@ -8,7 +8,7 @@ from .json import load_json_file
 from .execute import run_jobs_in_parallel
 
 
-def run_jackhmmer(reformat_perl_path: str, fasta_files: list, database_fasta: str, cpu: int, out_path: str) -> None:
+def run_jackhmmer(fasta_files: list, database_fasta: str, cpu: int, out_path: str) -> None:
     """
     Run jackhmmer for homology searching.
 
@@ -22,6 +22,8 @@ def run_jackhmmer(reformat_perl_path: str, fasta_files: list, database_fasta: st
     Returns:
         None
     """
+    current_file_dir = os.path.dirname(os.path.abspath(__file__))
+    reformat_script = os.path.join(current_file_dir, "reformat.pl")
     jackhmmer_commands = []
     sto_to_a3m_commands = []
     n_threads = max(1, round(cpu / len(fasta_files)))
@@ -34,7 +36,7 @@ def run_jackhmmer(reformat_perl_path: str, fasta_files: list, database_fasta: st
         sto_command = ("jackhmmer --noali --F1 0.0005 --F2 0.00005 --F3 0.0000005 --incE 0.0001 -E 0.0001 -N 1 "
                        "-o /dev/null --cpu %s -A %s %s %s" % (n_threads, sto_file_path, fasta_file, database_fasta))
         jackhmmer_commands.append(sto_command)
-        sto_to_a3m_command = ("perl %s sto a3m %s %s > /dev/null" % (reformat_perl_path, sto_file_path, a3m_file_path))
+        sto_to_a3m_command = ("perl %s sto a3m %s %s > /dev/null" % (reformat_script, sto_file_path, a3m_file_path))
         sto_to_a3m_commands.append(sto_to_a3m_command)
 
     run_jobs_in_parallel(cpu, jackhmmer_commands, "Homology searching")
@@ -139,7 +141,6 @@ def make_alignment_pair(query_colon_hits: List[str], input_query_feats: Infile_f
                         accession_combo[hit_index] = hit_accession
                         seq_combo[hit_index] = sequence
                     else:
-                        print("Warning: Sequence coverage is less than 50% for {}".format(hit_accession))
                         dummy_counter += 1
                         created_sequence = "-" * len(sequence)
                         accession_combo[hit_index] = "DUMMY"

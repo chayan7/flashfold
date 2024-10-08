@@ -10,8 +10,9 @@ from flashfold.utils import extract_protein_sequences, is_valid_path, get_hash_t
 genbank_file_extensions = [".gbff", ".gbk"]
 
 
-def create_protein_db_from_gbk(database_output_directory: str, gbk_dir: str) -> None:
-
+def create_protein_db_from_gbk(args) -> None:
+    database_output_directory = args.output
+    gbk_dir = args.path
     gbk_files = get_hash_to_files_with_extensions_from_dir(gbk_dir, genbank_file_extensions)
 
     total = len(gbk_files)

@@ -10,7 +10,10 @@ from flashfold.utils import extract_protein_sequences, get_hash_to_files_with_ex
 genbank_file_extensions = [".gbff", ".gbk"]
 
 
-def extend_main_sequence_db(main_db_path: str, new_genbank_path: str, new_db_path: str) -> None:
+def extend_main_sequence_db(args) -> None:
+    main_db_path = args.main_db
+    new_genbank_path = args.genbank_path
+    new_db_path = args.new_db
     if not is_valid_database_dir(main_db_path):
         sys.exit()
     protein_hash_key_to_gbk_hashes_file = os.path.join(os.path.abspath(main_db_path), "protein_to_gbks.json")

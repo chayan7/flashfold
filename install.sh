@@ -87,27 +87,6 @@ FLASHFOLD_CONDA_ENV_DIR="${CURRENT_CONDA_PATH}/envs/${FLASHFOLD_ENV_NAME}"
 # Update conda environment
 conda env update -f "${ENV_YML_FILE_PATH}"
 
-# Download the updater for macOS (Apple Silicon)
-if [ "$OS_TYPE" == "mac-silicon" ]; then
-    wget -qnc -O "$FLASHFOLD_CONDA_ENV_DIR/update_M1mac.sh" \
-        https://raw.githubusercontent.com/YoshitakaMo/localcolabfold/main/update_M1mac.sh
-    chmod +x "$FLASHFOLD_CONDA_ENV_DIR/update_M1mac.sh"
-fi
-
-# Download the updater for macOS (Intel)
-if [ "$OS_TYPE" == "mac-intel" ]; then
-    wget -qnc -O "$FLASHFOLD_CONDA_ENV_DIR/update_intelmac.sh" \
-    https://raw.githubusercontent.com/YoshitakaMo/localcolabfold/main/update_intelmac.sh
-    chmod +x "$FLASHFOLD_CONDA_ENV_DIR/update_intelmac.sh"
-fi
-
-# Download the updater for Linux
-if [ "$OS_TYPE" == "linux" ]; then
-    wget -qnc -O "$FLASHFOLD_CONDA_ENV_DIR/update_linux.sh" \
-        https://raw.githubusercontent.com/YoshitakaMo/localcolabfold/main/update_linux.sh
-    chmod +x "$FLASHFOLD_CONDA_ENV_DIR/update_linux.sh"
-fi
-
 # Download weights
 "${FLASHFOLD_CONDA_ENV_DIR}/bin/python3" -m colabfold.download
 echo "Download of alphafold2 weights finished."
