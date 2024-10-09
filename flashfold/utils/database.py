@@ -1,9 +1,13 @@
 import threading
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from .util import (is_valid_path, get_filename_to_path_set_by_directory, get_files_from_path_by_extension,
                    get_filename_without_extension, is_pattern_matched)
 from .json import load_json_file, write_dict_to_json_as_file
 from typing import Dict, List, Set
+
+
+Db_Content = namedtuple('Db_Content', ['protein_hash', 'is_new_protein',
+                                       'new_accessions', 'new_gbks', 'new_fasta'])
 
 
 files_to_be_in_database = ["prot_hash_to_accession.json", "protein_to_gbks.json", "sequence_db.fasta"]
@@ -54,6 +58,8 @@ def is_valid_database_dir(database_dir: str) -> bool:
 
 class Database:
     def __init__(self, path: str) -> None:
+        if not is_valid_database_dir(path):
+            raise ValueError(f"Invalid database directory: {path}")
         self.database_path = path
         self.database_files = get_filename_to_path_set_by_directory(self.database_path, [".fasta", ".json"])
         self.fasta_db = self._sequence_db()
@@ -68,7 +74,7 @@ class Database:
         return list(seq_db_fasta_path_set)[0]
 
     def _prot_hash_to_accession(self) -> str:
-        prot_hash_to_accession_path_set = self.database_files["sequence_db.fasta"]
+        prot_hash_to_accession_path_set = self.database_files["prot_hash_to_accession.json"]
         return list(prot_hash_to_accession_path_set)[0]
 
     def _protein_to_gbks(self) -> str:
@@ -79,7 +85,7 @@ class Database:
         self._protein_to_gbks_loaded = load_json_file(self.protein_to_gbks)
 
     @property
-    def load_protein_to_gbks(self) -> Dict[str, Set[str]]:
+    def load_protein_to_gbks(self) -> Dict[str, List[str]]:
         # Ensure the background thread has completed
         self._protein_to_gbks_thread.join()
         return self._protein_to_gbks_loaded
@@ -105,3 +111,16 @@ class Database:
                                             gbk_to_hits[gbk].append(query_hash_colon_hit_accession)
         write_dict_to_json_as_file(gbk_to_hits, json_out_file)
         return None
+
+
+class CreateDbContent:
+    def __init__(self, protein_hash: str, is_new_protein: bool, new_accessions: List[str],
+                 new_gbks: List[str], new_fasta: str) -> None:
+        self.protein_hash = protein_hash
+        self.is_new_protein = is_new_protein
+        self.new_accessions = new_accessions
+        self.new_gbks = new_gbks
+        self.new_fasta = new_fasta
+
+    def get_formatted_content(self) -> Db_Content:
+        return Db_Content(self.protein_hash, self.is_new_protein, self.new_accessions, self.new_gbks, self.new_fasta)

@@ -3,25 +3,37 @@
 # Function to check and install dependencies
 check_and_install() {
     if command -v "$1" &> /dev/null; then
-        echo -e "\t- $1 is installed."
+        :
     else
         if command -v brew &> /dev/null; then
             # shellcheck disable=SC2162
-            read -p "\t- Do you want $1 to be installed now using Homebrew (recommended)? (y/n): " choice
+            read -p "-- Do you want $1 to be installed now using Homebrew (recommended)? (y/n): " choice
             if [ "$choice" == "y" ]; then
                 brew install "$2"
             else
-                echo -e "\t- Please install $1 using: 'brew install $2' (recommended) and re-run this script."
+                echo -e "-- Please install $1 using: 'brew install $2' (recommended) and re-run this script."
                 exit 1
             fi
         else
-            echo -e "\t- Warning: $1 is not installed (but required)."
-            echo -e "\t\t- Please install $1 using: 'brew install $2' (recommended) and re-run this script."
-            echo -e "\t\t- Homebrew (brew) is not installed either."
+            echo -e "-- Warning: $1 is not installed (but required)."
+            echo -e "-- Please install $1 using: 'brew install $2' (recommended) and re-run this script."
+            echo -e "-- Homebrew (brew) is not installed either."
             exit 1
         fi
     fi
 }
+
+
+# Check
+check() {
+    if command -v "$1" &> /dev/null; then
+        :
+    else
+        echo -e "-- Please install $1 and re-run this script."
+        exit 1
+    fi
+}
+
 
 CURRENT_PATH="$(pwd)"
 
@@ -63,14 +75,16 @@ fi
 
 # macOS specific commands
 if [ "$machine" == "Mac" ]; then
-    check_and_install wget wget
-    check_and_install gnu-sed gnu-sed
-    check_and_install hhsearch brewsci/bio/hh-suite
-    check_and_install kalign brewsci/bio/kalign
-    check_and_install jackhmmer hmmer
-    if [ "$OS_TYPE" == "mac-silicon" ]; then
-        check_and_install cmake cmake
-    fi
+    check_and_install unzip unzip
+fi
+
+if [ "$OS_TYPE" == "mac-silicon" ]; then
+    check_and_install cmake cmake
+fi
+
+# linux specific commands
+if [ "$machine" == "Linux" ]; then
+    check unzip
 fi
 
 # Conda installation & version check

@@ -70,11 +70,12 @@ def remove_all_contents_in_directory(directory: str):
     Raises:
     ValueError: If the provided path is not a directory.
     """
-    if not os.path.isdir(directory):
-        raise ValueError(f"The path '{directory}' is not a directory or does not exist.")
+    path_to_directory = os.path.realpath(directory)
+    if not os.path.isdir(path_to_directory):
+        raise ValueError(f"The path '{path_to_directory}' is not a directory or does not exist.")
 
-    for filename in os.listdir(directory):
-        file_path = os.path.join(directory, filename)
+    for filename in os.listdir(path_to_directory):
+        file_path = os.path.join(path_to_directory, filename)
         try:
             shutil.rmtree(file_path)  # Removes files, directories, and symlinks recursively
         except OSError:
@@ -125,7 +126,7 @@ def get_filename_to_path_set_by_directory(input_directory: str, extensions: List
     return filename_to_path
 
 
-def get_hash_to_files_with_extensions_from_dir(directory: str, extensions: List) -> Dict:
+def get_hash_to_files_with_extensions_from_dir(directory: str, extensions: List) -> Dict[str, str]:
     """
     Indexes the files in the specified directory by their MD5 hash.
 
@@ -173,7 +174,7 @@ def current_time_raw() -> datetime:
     return datetime.now()
 
 
-def is_zero_or_pos_int(input_str: str):
+def is_zero_or_pos_int(input_str: str) -> int:
     """
     Check if the input is a 0 or a positive integer.
     """
@@ -186,7 +187,7 @@ def is_zero_or_pos_int(input_str: str):
         raise argparse.ArgumentTypeError("Invalid input")
 
 
-def is_pos_int(input_str: str):
+def is_pos_int(input_str: str) -> int:
     """
     Check if the input is a positive integer.
     """
@@ -199,8 +200,8 @@ def is_pos_int(input_str: str):
         raise argparse.ArgumentTypeError("Invalid input")
 
 
-def join_list_elements_by_character(input_list: list,
-                                    delimiter: Literal["_", "-", ",", ":", "\t", "\n", "", " ", "null"]):
+def join_list_elements_by_character(input_list: List,
+                                    delimiter: Literal["_", "-", ",", ":", "\t", "\n", "", " ", "null"]) -> str:
     """
     Joins elements of the list into a single string with a specified delimiter.
 
@@ -216,23 +217,6 @@ def join_list_elements_by_character(input_list: list,
         return null_character.join(map(str, input_list))
 
     return delimiter.join(map(str, input_list))
-
-
-def get_new_elements_from_second_list(first_list: List, second_list: List) -> List:
-    """
-    Get the elements that are present in the second list but not in the first list.
-
-    Args:
-        first_list (List): The first list of elements.
-        second_list (List): The second list of elements.
-
-    Returns:
-        List: A list of elements that are in the second list but not in the first list.
-    """
-    set1 = set(first_list)
-    set2 = set(second_list)
-    # Get the difference
-    return list(set2 - set1)
 
 
 def is_installed(tool_name: str) -> bool:
@@ -257,8 +241,8 @@ def get_files_from_path_by_extension(path: str, extension: str) -> list:
     """
     Get a list of files with a specified extension from a given path.
     """
-    absolute_path = os.path.abspath(path)
-    all_contents_in_path = glob.glob(os.path.join(absolute_path, "*"))
+    real_path = os.path.realpath(path)
+    all_contents_in_path = glob.glob(os.path.join(real_path, "*"))
     file_list = []
     for potential_file in all_contents_in_path:
         if os.path.isfile(potential_file) and has_desired_file_extensions(potential_file, [extension]):
@@ -356,3 +340,55 @@ def update_time_log(log_file: str, message: str, use_timestamp: bool) -> None:
             f.write(f"[{timestamp}] {message}\n")
         else:
             f.write(f"{message}\n")
+
+
+def get_contents_by_column(file_path: str, column: int = 1) -> List[str]:
+    """
+    Get a list of contents from a file.
+    Args:
+        file_path: The path to the file.
+        column: The column number to extract the contents from. Columns are "not 0-indexed".
+
+    Returns:
+        List: A list of contents from the file.
+    """
+    if column < 1:
+        raise ValueError("Column number should be greater than 0.")
+    contents = []
+    with open(file_path, "r") as in_file:
+        for line in in_file:
+            processed_line = line.strip().split('\t')[column - 1]
+            contents.append(processed_line)
+    return contents
+
+
+def get_sum_of_all_file_sizes_by_path(path: str) -> int:
+    """
+    Check the size of all files in a given path.
+
+    :param path: Path to the directory
+    Returns: total size of all files in the directory
+    """
+    total_size = 0
+    path_to_directory = os.path.realpath(path)
+    if not os.path.isdir(path_to_directory):
+        print(f"The path '{path_to_directory}' is not a directory or does not exist.")
+        return total_size
+
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            file_size = os.path.getsize(file_path)
+            total_size += file_size
+    return total_size
+
+
+def file_has_content(file_path: str) -> bool:
+    """
+    Check if a file has content.
+    Args:
+        file_path: The path to the file.
+
+    Returns: True if it has content
+    """
+    return os.path.exists(file_path) and os.path.getsize(file_path) > 0

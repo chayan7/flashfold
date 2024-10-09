@@ -21,8 +21,10 @@ def wget_file_from_url(url: str, out_dir: str) -> None:
     try:
         filename = wget.download(url, out=out_dir)
         print(f"\nFile downloaded successfully: '{filename}'\n")
-    except (wget.WgetError, OSError) as e:
+    except OSError as e:  # Handle any OS-related errors (e.g., file write issues)
         print(f"\nError downloading file: {e}")
+    except Exception as e:  # Handle any other general errors like connection issues
+        print(f"\nAn unexpected error occurred: {e}")
 
 
 def get_to_be_downloaded_files(ftp_link: str, extensions: List[str]) -> Dict:

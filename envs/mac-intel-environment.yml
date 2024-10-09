@@ -5,13 +5,12 @@ channels:
   - biocore
   - defaults
 dependencies:
-  - git
   - python=3.10
   - openmm==8.0.0
   - pdbfixer==1.9
   - perl
   - ncbi-datasets-cli
-  - mmseqs2=15.6f452
+  - hmmer
   - pip
   - pip:
       - colabfold[alphafold] @ git+https://github.com/sokrypton/ColabFold
@@ -22,6 +21,7 @@ dependencies:
       - setuptools~=69.0.3
       - pyinstaller
       - poetry
+      - pytest
       - wget~=3.2
       - ujson~=5.10.0
       - numpy~=1.26.4

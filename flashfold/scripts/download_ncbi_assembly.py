@@ -9,6 +9,7 @@ from subprocess import Popen, PIPE
 from typing import List, Dict
 import shutil
 import time
+from flashfold.utils import wget_file_from_url
 
 
 def summary_error_message(stderr: str, input_taxon: str) -> None:
@@ -50,16 +51,18 @@ def get_output_dir_path(output: str) -> str:
     Raises:
         SystemExit: If the specified output directory is not empty.
     """
-    if os.path.exists(output):
-        if not any(os.scandir(output)):
-            return os.path.abspath(output)
+    path_to_output = os.path.realpath(output)
+    if os.path.exists(path_to_output):
+        if not any(os.scandir(path_to_output)):
+            return path_to_output
         else:
-            print(f"Provided output directory '{output}' is not empty, please use a different output directory.")
+            print(f"Provided output directory '{path_to_output}' is not empty, please use a different directory.")
             sys.exit()
     else:
-        print(f"\nCreating output directory: '{output}'\n")
-        os.makedirs(output)
-        return os.path.abspath(output)
+
+        print(f"\nCreating output directory: '{path_to_output}'\n")
+        os.makedirs(path_to_output)
+        return path_to_output
 
 
 def get_accessions_from_summary(summary_file: str) -> List[str]:
@@ -156,36 +159,59 @@ def parse_formats(input_formats: str) -> List[str]:
     return [file_format.strip() for file_format in formats]
 
 
-def process_command_batch(command_batch: List[str]) -> bool:
+def process_command_batch(command_batch: List[str]) -> Dict[str, List[str]]:
     """
-    Executes a batch of shell commands and retries any failed commands.
+    Executes a batch of shell commands.
 
     Args:
         command_batch (List[str]): A list of shell commands to be executed.
 
     Returns:
-        bool: True if all commands succeed, False if any command fails after retries.
+        Dict[str, List[str]]: A dictionary with keys 'processed' and 'failed' containing lists of commands.
     """
     failed_commands = []
+    processed_commands = []
     process_list = [Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE) for cmd in command_batch]
     for process in process_list:
         process.communicate()
         if process.returncode != 0:
-            print(f"\t\tError in command: {process.args}")
+            print(f"\t\tError while download: {process.args}")
             failed_commands.append(process.args)
-    while failed_commands:
-        current_failed_commands = failed_commands
-        failed_commands = []
-        for cmd in current_failed_commands:
-            process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-            while process.poll() is None:
-                time.sleep(0.1)  # Wait a bit before checking again
-            process.communicate()
-            if process.returncode != 0:
-                failed_commands.append(process.args)
-            else:
-                print(f"\t\tCommand succeeded on retry: {process.args}")
-    return len(failed_commands) == 0
+        else:
+            processed_commands.append(process.args)
+
+    # retry failed commands
+    failed_commands_after_retry = []
+    for failed_command in failed_commands:
+        print(f"\t\tRetrying failed attempt: {failed_command}")
+        time.sleep(10)
+        process = Popen(failed_command, shell=True, stdout=PIPE, stderr=PIPE)
+        process.communicate()
+        if process.returncode != 0:
+            print(f"\t\tError while retrying download: {process.args}")
+            failed_commands_after_retry.append(process.args)
+        else:
+            processed_commands.append(process.args)
+
+    return {'processed': processed_commands, 'failed': failed_commands_after_retry}
+
+
+def is_reference_or_refseq_annotated(info_line: str, sub_dir: str) -> bool:
+    """
+    Checks if the info line contains the string 'reference genome' or 'NCBI RefSeq'.
+    Args:
+        info_line: string containing the information line from the assembly summary file.
+        sub_dir:    string containing the subdirectory name of the assembly summary file.
+
+    Returns:
+        bool: True if the info line contains 'reference genome' or 'NCBI RefSeq', False otherwise.
+    """
+    search_string = "reference genome" if sub_dir != "viral" else "NCBI RefSeq"
+    split_line = info_line.rstrip().split("\t")
+    for item in split_line:
+        if search_string == item:
+            return True
+    return False
 
 
 # Define valid choices
@@ -211,9 +237,15 @@ format_to_file_ext = {
 
 
 def download_ncbi_data(args) -> None:
+    if args.input and args.source:
+        print("The --source (-s) can not be applied with --input (-i) , only applicable with --name (-n).")
+        sys.exit()
 
     today = datetime.date.today()
     output_directory = get_output_dir_path(args.output)
+
+    temp_dir = os.path.join(output_directory, "temp")
+    os.makedirs(temp_dir)
 
     api_key_parameter = f"--api-key {args.api_key}" if args.api_key else ""
     batch_length = 8 if args.api_key else 2
@@ -231,19 +263,35 @@ def download_ncbi_data(args) -> None:
         summary_file_path = os.path.join(output_directory, "summary.tsv")
         summary_fields = (f"accession,organism-name,organism-tax-id,assminfo-level,checkm-completeness,"
                           f"assminfo-release-date,checkm-completeness,source_database")
-        source = parse_source(args.source)
+        source = parse_source(args.source) if args.source else "RefSeq"
         summary_command = (f"datasets summary genome taxon '{args.name}' --assembly-source {source} "
                            f"--as-json-lines {api_key_parameter} | dataformat tsv genome --fields {summary_fields} "
                            f"> {summary_file_path}")
         try:
             summary = subprocess.run(summary_command, shell=True, capture_output=True, text=True)
-            if summary.stderr:
+            accessions = get_accessions_from_summary(summary_file_path)
+            if summary.stderr.startswith("Error:") and len(accessions) == 0:
                 summary_error_message(summary.stderr, args.name)
             else:
-                ncbi_accessions = get_accessions_from_summary(summary_file_path)
-                assembly_accessions.extend(ncbi_accessions)
+                assembly_accessions.extend(accessions)
         except subprocess.CalledProcessError as e:
             print(f"Error running datasets: {e}")
+    elif args.reference:
+        query = args.reference
+        # RefSeq file to be downloaded
+        refseq_url = f"https://ftp.ncbi.nlm.nih.gov/genomes/refseq/{query}/assembly_summary.txt"
+        refseq_file = os.path.join(temp_dir, "assembly_summary.txt")
+        print(f"\nDownloading data from RefSeq database ... \n")
+        wget_file_from_url(refseq_url, temp_dir)
+        if os.path.isfile(refseq_file):
+            with open(refseq_file, 'r') as refseq_in:
+                for line in refseq_in:
+                    if is_reference_or_refseq_annotated(line, query):
+                        accession = line.split("\t")[0]
+                        if accession.startswith("GCF_"):
+                            assembly_accessions.append(accession)
+    else:
+        sys.exit()
 
     if len(assembly_accessions) == 0:
         print("No assembly accessions found. Please try again with a valid input.")
@@ -258,9 +306,6 @@ def download_ncbi_data(args) -> None:
         out_dir_per_file_format = os.path.join(output_directory, f"{file_format}")
         os.makedirs(out_dir_per_file_format)
 
-    temp_dir = os.path.join(output_directory, "temp")
-    os.makedirs(temp_dir)
-
     command_to_zip_file: Dict[str, str] = {}
     for accession in assembly_accessions:
         zip_file_path = os.path.join(temp_dir, f"{accession}.zip")
@@ -269,31 +314,37 @@ def download_ncbi_data(args) -> None:
         command_to_zip_file[download_command] = zip_file_path
 
     total_command_batches = create_batches(list(command_to_zip_file.keys()), batch_length)
-
     with open(log_file_path, 'w') as log_file:
         for command_batch in total_command_batches:
-            is_downloaded = process_command_batch(command_batch)
-            if is_downloaded:
-                for command in command_batch:
-                    zip_file_path = command_to_zip_file[command]
-                    accession = os.path.basename(zip_file_path).split('.')[0]
-                    if os.path.exists(zip_file_path):
-                        accession_counter += 1
-                        print(f"\t-- Downloaded {accession} ({accession_counter}/{len(assembly_accessions)})")
-                        for file_format in args.format:
-                            search_extension = format_to_search_ext[file_format]
-                            file_ext = format_to_file_ext[file_format]
-                            unzip_command = (
-                                f"unzip -p {zip_file_path} ncbi_dataset/data/{accession}/{search_extension} "
-                                f"> {output_directory}/{file_format}/{accession}{file_ext}")
-                            try:
-                                subprocess.run(unzip_command, shell=True, capture_output=True, text=True)
-                            except subprocess.CalledProcessError as e:
-                                print(f"Error while preparing {accession} {file_format}: {e}")
-                        # noinspection PyTypeChecker
-                        print(accession, file=log_file)
-                    else:
-                        print(f"Error while downloading {accession}")
+            results_after_processing = process_command_batch(command_batch)
+            processed_commands = results_after_processing['processed']  # List of processed commands
+            failed_commands = results_after_processing['failed']  # List of failed commands
+            for processed_command in processed_commands:
+                zip_file_path = command_to_zip_file[processed_command]
+                accession = os.path.basename(zip_file_path)[:-4]
+                if os.path.exists(zip_file_path):
+                    accession_counter += 1
+                    print(f"\t-- Downloaded {accession} ({accession_counter}/{len(assembly_accessions)})")
+                    for file_format in args.format:
+                        search_extension = format_to_search_ext[file_format]
+                        file_ext = format_to_file_ext[file_format]
+                        unzip_command = (
+                            f"unzip -p {zip_file_path} ncbi_dataset/data/{accession}/{search_extension} "
+                            f"> '{output_directory}/{file_format}/{accession}{file_ext}'")
+                        try:
+                            subprocess.run(unzip_command, shell=True, capture_output=True, text=True)
+                        except subprocess.CalledProcessError as e:
+                            print(f"Error while preparing {accession} {file_format}: {e}")
+                    # noinspection PyTypeChecker
+                    print(accession, "passed", sep="\t", file=log_file)
+                else:
+                    print(f"Error while downloading {accession}")
+            for failed_command in failed_commands:
+                print(f"\t\tFailed to download: {failed_command}")
+                zip_file_path_failed = command_to_zip_file[failed_command]
+                accession_failed = os.path.basename(zip_file_path_failed)[:-4]
+                # noinspection PyTypeChecker
+                print(accession_failed, "failed to download", sep="\t", file=log_file)
 
     shutil.rmtree(temp_dir)
     print("Done!" if accession_counter == len(assembly_accessions) else "Completed with some error!")

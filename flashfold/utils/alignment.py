@@ -1,6 +1,6 @@
 import os
 import itertools
-from typing import List, Dict, Set
+from typing import List, Dict
 from .util import get_filename_without_extension, join_list_elements_by_character, current_time
 from .sequence import Sequence, Infile_feats, get_alignment_records_from_a3m_file, combine_sequences, \
     combine_gappy_sequences, make_hash_fasta_sequence
@@ -8,15 +8,14 @@ from .json import load_json_file
 from .execute import run_jobs_in_parallel
 
 
-def run_jackhmmer(fasta_files: list, database_fasta: str, cpu: int, out_path: str) -> None:
+def run_jackhmmer(fasta_files: list, database_fasta: str, provided_cpu: int, out_path: str) -> None:
     """
     Run jackhmmer for homology searching.
 
     Args:
-        reformat_perl_path (str): Path to the reformat.pl script.
         fasta_files (list): List of paths to FASTA files.
         database_fasta (str): Path to the database FASTA file.
-        cpu (int): Number of CPU cores to use.
+        provided_cpu (int): Number of CPU cores to use.
         out_path (str): Output directory path.
 
     Returns:
@@ -26,7 +25,7 @@ def run_jackhmmer(fasta_files: list, database_fasta: str, cpu: int, out_path: st
     reformat_script = os.path.join(current_file_dir, "reformat.pl")
     jackhmmer_commands = []
     sto_to_a3m_commands = []
-    n_threads = max(1, round(cpu / len(fasta_files)))
+    cpu_per_job = min(8, provided_cpu)
     for fasta_file in fasta_files:
         fasta_basename = os.path.basename(fasta_file)
         sto_file_name = f"{os.path.splitext(fasta_basename)[0]}.sto"
@@ -34,13 +33,13 @@ def run_jackhmmer(fasta_files: list, database_fasta: str, cpu: int, out_path: st
         a3m_file_name = f"{os.path.splitext(fasta_basename)[0]}.a3m"
         a3m_file_path = os.path.join(os.path.abspath(out_path), a3m_file_name)
         sto_command = ("jackhmmer --noali --F1 0.0005 --F2 0.00005 --F3 0.0000005 --incE 0.0001 -E 0.0001 -N 1 "
-                       "-o /dev/null --cpu %s -A %s %s %s" % (n_threads, sto_file_path, fasta_file, database_fasta))
+                       "-o /dev/null --cpu %s -A %s %s %s" % (cpu_per_job, sto_file_path, fasta_file, database_fasta))
         jackhmmer_commands.append(sto_command)
         sto_to_a3m_command = ("perl %s sto a3m %s %s > /dev/null" % (reformat_script, sto_file_path, a3m_file_path))
         sto_to_a3m_commands.append(sto_to_a3m_command)
 
-    run_jobs_in_parallel(cpu, jackhmmer_commands, "Homology searching")
-    run_jobs_in_parallel(cpu, sto_to_a3m_commands, "Alignment reformatting")
+    run_jobs_in_parallel(provided_cpu, cpu_per_job, jackhmmer_commands, "Homology searching")
+    run_jobs_in_parallel(provided_cpu, 1, sto_to_a3m_commands, "Alignment reformatting")
 
 
 def has_good_coverage(sequence: str, coverage: float = 0.5) -> bool:
@@ -88,7 +87,7 @@ def get_query_to_a3m_records(a3m_files: List[str], query_hashes: List[str]) -> D
 
 
 def make_alignment_pair(query_colon_hits: List[str], input_query_feats: Infile_feats,
-                               a3m_records: Dict[str, str]) -> tuple[List[Sequence], List[str]]:
+                        a3m_records: Dict[str, str]) -> List[Sequence]:
     """
     Create alignment pairs from query hits and input query features.
 
@@ -98,7 +97,7 @@ def make_alignment_pair(query_colon_hits: List[str], input_query_feats: Infile_f
         a3m_records (Dict[str, str]): Dictionary of A3M records.
 
     Returns:
-        tuple[List[Sequence], List[str]]: A tuple containing a list of sequences and a list of A3M record keys.
+        List[Sequence]: A list of paired sequences
     """
     query_hashes = input_query_feats.chain_seq_hashes
     gappy_seq_limit = len(query_hashes) - 1
@@ -119,7 +118,6 @@ def make_alignment_pair(query_colon_hits: List[str], input_query_feats: Infile_f
     pairs_of_best_hits = list(itertools.product(*list_of_top_hit_list))
 
     list_of_alignment = []
-    list_of_a3m_records_keys_paired = []
     for potential_combination in pairs_of_best_hits:
         hit_combo = list(potential_combination)
         if hit_combo.count("-") < gappy_seq_limit:
@@ -148,10 +146,9 @@ def make_alignment_pair(query_colon_hits: List[str], input_query_feats: Infile_f
                         seq_combo[hit_index] = created_sequence
 
             if dummy_counter < gappy_seq_limit:
-                list_of_a3m_records_keys_paired.extend(hit_combo)
                 list_of_alignment.append(combine_sequences(accession_combo, seq_combo))
 
-    return list_of_alignment, list_of_a3m_records_keys_paired
+    return list_of_alignment
 
 
 def introduce_gap_in_subunit(subunit_seq: List[str]) -> List[List[str]]:
@@ -214,19 +211,16 @@ def create_a3m_for_folding(summary_json: str, a3m_records: Dict[str, str],
     chain_seq_hashes = query_fasta.chain_seq_hashes
     is_query_a_hetero_complex = len(query_fasta.chain_seq_hashes) > 1
 
-    set_of_a3m_records_keys_paired: Set[str] = set()
     gappy_seq_dict = {}
 
     if is_query_a_hetero_complex:
         for gbk in gbk_to_query_colon_hits:
             query_colon_hits = gbk_to_query_colon_hits[gbk]
-            paired_alignment_lists, list_of_a3m_records_keys_paired \
-                = make_alignment_pair(query_colon_hits, query_fasta, a3m_records)
+            paired_alignment_lists = make_alignment_pair(query_colon_hits, query_fasta, a3m_records)
             for a3m_alignment in paired_alignment_lists:
                 if a3m_alignment.hash not in a3m_alignment_hashes:
                     a3m_alignments.append(a3m_alignment.fasta)
                     a3m_alignment_hashes.add(a3m_alignment.hash)
-                    set_of_a3m_records_keys_paired.update(list_of_a3m_records_keys_paired)
 
         g = 0
         for gappy_subunit_sequences in introduce_gap_in_subunit(chain_subunit_sequences):
@@ -237,17 +231,16 @@ def create_a3m_for_folding(summary_json: str, a3m_records: Dict[str, str],
         for j in range(len(chain_seq_hashes)):
             empty_chain_subunit_seq_list = query_fasta.empty_subunits.copy()
             for query_hash_colon_hit in a3m_records:
-                if query_hash_colon_hit not in set_of_a3m_records_keys_paired:
-                    query_hash_value, hit_accession = query_hash_colon_hit.split(":", 1)
-                    if query_hash_value == chain_seq_hashes[j]:
-                        empty_chain_subunit_seq_list[j] = a3m_records[query_hash_colon_hit]
-                        combo_unpaired = combine_sequences([hit_accession], empty_chain_subunit_seq_list)
-                        if gappy_seq_dict[j].hash not in a3m_alignment_hashes:
-                            a3m_alignments.append(gappy_seq_dict[j].fasta)
-                            a3m_alignment_hashes.add(gappy_seq_dict[j].hash)
-                        if combo_unpaired.hash not in a3m_alignment_hashes:
-                            a3m_alignments.append(combo_unpaired.fasta)
-                            a3m_alignment_hashes.add(combo_unpaired.hash)
+                query_hash_value, hit_accession = query_hash_colon_hit.split(":", 1)
+                if query_hash_value == chain_seq_hashes[j]:
+                    empty_chain_subunit_seq_list[j] = a3m_records[query_hash_colon_hit]
+                    combo_unpaired = combine_sequences([hit_accession], empty_chain_subunit_seq_list)
+                    if gappy_seq_dict[j].hash not in a3m_alignment_hashes:
+                        a3m_alignments.append(gappy_seq_dict[j].fasta)
+                        a3m_alignment_hashes.add(gappy_seq_dict[j].hash)
+                    if combo_unpaired.hash not in a3m_alignment_hashes:
+                        a3m_alignments.append(combo_unpaired.fasta)
+                        a3m_alignment_hashes.add(combo_unpaired.hash)
     else:
         for query_hash_colon_hit in a3m_records:
             query_hash_value, hit_accession = query_hash_colon_hit.split(":", 1)
@@ -267,6 +260,5 @@ def create_a3m_for_folding(summary_json: str, a3m_records: Dict[str, str],
             # noinspection PyTypeChecker
             print(seq_aln.rstrip(), file=con_out)
     end_time = current_time()
-    print(f"-- {end_time} > Completed selection and processing of the best homologue sequences, "
-          f"check: \n\t{concat_filepath}\n")
+    print(f"-- {end_time} > Completed filtering MSA, check output at: \n\t'{concat_filepath}'\n")
     return None

@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.2] - 2024-10-28
+
+#### Added
+- `test` folder with test files.
+- Used can run test scripts using `pytest` command.
+- Logo added to the README.md file.
+
+#### Changed
+- Updated the README.md file with more examples.
+- Updated the arguments for `ncbi_data` subcommand. 
+- Collects `Hmmer` from conda biocore for macOS.
+- Version number is updated.
+
+#### Fixed
+- Cutoff value is now only applicable for multimer prediction.
+- All subcommands are fixed.
+
+
+#### Removed
+- No longer depends on `HH-suite`, `Kalign` and `mmseqs2`.
+
+
 ## [1.0.1] - 2024-10-09
 
 #### Added
@@ -9,8 +31,8 @@ All notable changes to this project will be documented in this file.
 
 #### Changed
 - Updated the installation instructions in the README.md file.
-- updated the `install.sh` script
-- Version number is updated
+- updated the `install.sh` script.
+- Version number is updated.
 
 #### Fixed
 - N/A

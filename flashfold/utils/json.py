@@ -47,3 +47,16 @@ def write_dict_of_set_to_json_as_file(data: Dict, file_path: str) -> None:
     """
     regular_dict = {key: list(value) for key, value in data.items()}
     write_dict_to_json_as_file(regular_dict, file_path)
+
+
+class JsonStructure:
+    def __init__(self):
+        self.data = {}
+
+    def add_entry(self, key, sub_key, sub_value):
+        if key not in self.data:
+            self.data[key] = {}
+        self.data[key][sub_key] = sub_value
+
+    def get_data(self):
+        return self.data

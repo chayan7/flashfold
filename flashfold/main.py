@@ -13,7 +13,7 @@ def main() -> None:
                                        description='Choose any of the following command options')
 
     # command create_db parser
-    desc_create_db = ''' Create database from Genbank files, by extracting protein sequences. 
+    desc_create_db = ''' Create sequence database from Genbank files, by extracting protein sequences. 
     Files should have either '.gbff' or '.gbk' extension. '''
     create_db = subparsers.add_parser('create_db', description=desc_create_db)
     create_db.add_argument("-p", "--path", metavar="<Data_Dir>", required=True,
@@ -27,6 +27,8 @@ def main() -> None:
     extend_db = subparsers.add_parser('extend_db', description=desc_extend_db)
     extend_db.add_argument("-m", "--main_db", metavar="<Database_Dir>", required=True,
                            help="path to the main database, which will be extended with new information")
+    extend_db.add_argument("-y", "--yes", action="store_true", default=False,
+                           help="confirm the extension of the main database (default: False)")
     # Create a mutually exclusive group for -n and -g
     group = extend_db.add_mutually_exclusive_group(required=True)
     group.add_argument("-g", "--genbank_path", metavar="<Genbank_Dir>",
@@ -34,7 +36,6 @@ def main() -> None:
                             "update the main database")
     group.add_argument("-n", "--new_db", metavar="<Database_Dir>",
                        help="path to the new database that will be added to the main database")
-
     # command download_db parser
     desc_download_db = ''' Download database required for FlashFold prediction. '''
     download_db = subparsers.add_parser('download_db', description=desc_download_db)
@@ -61,71 +62,82 @@ def main() -> None:
 
     ncbi_data = subparsers.add_parser('ncbi_data', description=desc_ncbi_data)
 
-    ncbi_data.add_argument("-a", "--api-key", metavar="<String>", help="Specify an NCBI API key. "
-                                                                       "To get this key kindly check: https://"
-                                                                       "ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/"
-                                                                       "new-api-keys-for-the-e-utilities/")
-
     # Create a mutually exclusive group for -i and -n
     group = ncbi_data.add_mutually_exclusive_group(required=True)
     group.add_argument("-i", "--input", metavar="<FILE_In>",
                        help="a text file that contains one NCBI assembly accession per line.")
     group.add_argument("-n", "--name", metavar="<String>",
                        help="name of organism eg., 'Pseudomonas aeruginosa' etc.")
+    group.add_argument("-r", "--reference", metavar="<String>",
+                       choices=["bacteria", "archaea", "fungi", "invertebrate", "plant",
+                                "protozoa", "vertebrate_mammalian", "vertebrate_other", "viral"],
+                       help="download reference genomes (for viruses it is refseq annotated genomes) from NCBI RefSeq "
+                            "subdirectory. Input should be any of them: bacteria/archaea/fungi/invertebrate/plant/"
+                            "protozoa/vertebrate_mammalian/vertebrate_other/viral")
+    ncbi_data.add_argument("-a", "--api-key", metavar="<String>", help="Specify an NCBI API key. "
+                                                                       "To get this key kindly check: https://"
+                                                                       "ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/"
+                                                                       "new-api-keys-for-the-e-utilities/")
+    ncbi_data.add_argument("-s", "--source", metavar="<String>", choices=['refseq', 'genbank', 'all'],
+                           help="assembly source selection. Valid options: 'refseq', 'genbank' or 'all' "
+                                "(default: 'refseq')")
     ncbi_data.add_argument("-f", "--format", metavar="<String>", type=parse_formats, required=True,
                            help="file format to be downloaded (comma-separated for multiple). "
                                 "Valid options: 'genome', 'protein', 'cds', 'gff3', 'gtf', 'gbff', 'all'.")
     ncbi_data.add_argument("-o", "--output", metavar="<Output_Dir>", required=True,
                            help="path that will contain output.")
-    ncbi_data.add_argument("-s", "--source", metavar="<String>", choices=['refseq', 'genbank', 'all'],
-                           default='all', help="assembly source selection. Valid options: 'refseq', 'genbank' or 'all' "
-                                               "(default).")
 
-    # command predict_3d parser
+    # command fold parser
     desc_fold = ''' Predict structure from FASTA sequence. '''
     fold = subparsers.add_parser('fold', description=desc_fold)
-    fold.add_argument("-q", "--query", metavar="<FILE_In>", required=True, help="path to FASTA file")
+    fold.add_argument("-q", "--query", metavar="<FILE_In|File_Dir>", required=True, help="path to FASTA file(s)")
     fold.add_argument("-d", "--database", metavar="<Database_Dir>", required=True,
-                         help="path to sequence database(s) created using create_db command")
+                      help="path to sequence database(s) created using create_db command")
     fold.add_argument("-o", "--output", metavar="<Output_Dir>", required=True,
-                         help="path that will contain output")
+                      help="path that will contain output")
     fold.add_argument("-t", "--threads", metavar="<Integer, >=1>", type=is_pos_int, default=16,
-                         help="number of threads. (default: 16)")
+                      help="number of threads. (default: 16)")
+    fold.add_argument("--batch", action="store_true", default=False,
+                      help="process multiple queries (default: False). If set, --query/-q should be the path to a "
+                           "directory containing FASTA files.")
+    fold.add_argument("--only_msa", action="store_true", default=False,
+                      help="only produces MSA for given query (default: False)")
     fold.add_argument("--num_models", type=int, choices=range(1, 6), default=5,
-                         help="number of models to use for structure prediction. Reducing the number of models speeds "
-                              "up the prediction but results in lower quality. (default: 5)")
+                      help="number of models to use for structure prediction. Reducing the number of models speeds "
+                           "up the prediction but results in lower quality. (default: 5)")
     fold.add_argument("--num_recycle", metavar="<Integer, >=1>", type=is_pos_int, default=3,
-                         help="number of prediction recycles. Increasing recycles can improve the prediction quality "
-                              "but slows down the prediction. (default: 3)")
+                      help="number of prediction recycles. Increasing recycles can improve the prediction quality "
+                           "but slows down the prediction. (default: 3)")
     fold.add_argument("--stop_at_score", metavar="<Integer>", type=int, default=100,
-                         help="compute models until pLDDT (single chain) or pTM-score (multimer) > threshold is reached"
-                              ". This speeds up prediction by running less models for easier queries. (default: 100) ")
+                      help="compute models until pLDDT (single chain) or pTM-score (multimer) > threshold is reached"
+                           ". This speeds up prediction by running less models for easier queries. (default: 100) ")
     fold.add_argument("--num_structure_relax", metavar="<Integer, >=0>", type=is_zero_or_pos_int, default=0,
-                         help="specify how many of the top-ranked structures to relax using OpenMM/Amber. Typically "
-                              "relaxing the top-ranked prediction is enough and speeds up the runtime. (default: 0)")
+                      help="specify how many of the top-ranked structures to relax using OpenMM/Amber. Typically "
+                           "relaxing the top-ranked prediction is enough and speeds up the runtime. (default: 0)")
     fold.add_argument("--relax_max_iterations", metavar="<Integer>", type=int, default=2000,
-                         help="maximum number of iterations for the relaxation process. (default: 2000)")
+                      help="maximum number of iterations for the relaxation process. (default: 2000)")
     fold.add_argument("--overwrite_existing_results", metavar="<Boolean>", type=bool, default=False,
-                         help="do not recompute results, if a query has already been predicted. (default: False)")
-    fold.add_argument("-c", "--cutoff", metavar="<Float>", type=float, default=10.0,
-                         help="Cutoff to define distances used for pDockQ2 score calculation of protein complex. "
-                              "(default: 10.0)")
+                      help="do not recompute results, if a query has already been predicted. (default: False)")
+    fold.add_argument("--cutoff", metavar="<Float>", type=float,
+                      help="Cutoff to define distances used for pDockQ2 score calculation of protein complex. "
+                           "(default: 10.0)")
 
     # Parse the arguments
     args = parser.parse_args()
 
-    if args.command == "create_db":
-        create_protein_db_from_gbk(args)
-    elif args.command == "extend_db":
-        extend_main_sequence_db(args)
-    elif args.command == "download_db":
-        download_database_from_cloud(args)
-    elif args.command == "ncbi_data":
-        download_ncbi_data(args)
-    elif args.command == "fold":
-        predict_3d_structure(args)
-    else:
-        parser.print_help()
+    match args.command:
+        case "create_db":
+            create_protein_db_from_gbk(args)
+        case "extend_db":
+            extend_main_sequence_db(args)
+        case "download_db":
+            download_database_from_cloud(args)
+        case "ncbi_data":
+            download_ncbi_data(args)
+        case "fold":
+            predict_3d_structure(args)
+        case _:
+            parser.print_help()
 
 
 if __name__ == '__main__':

@@ -13,6 +13,7 @@ Sequence = namedtuple('Sequence', ['hash', 'fasta'])
 Infile_feats = namedtuple('Infile_feats', ['accnrs', 'seqs', 'chain_accnrs', 'chain_seqs',
                                            'chain_seq_hashes', 'a3m_header', 'hash_to_fasta', 'empty_subunits'])
 Chain = namedtuple('Subunit', ['subunits', 'frequency', 'sequence'])
+Fasta_record = namedtuple('Fasta_record', ['accession', 'fasta'])
 
 
 def extract_protein_sequences(gbff_file_path: str) -> List:
@@ -34,14 +35,14 @@ def extract_protein_sequences(gbff_file_path: str) -> List:
                 if feature.type == "CDS" and "translation" in feature.qualifiers:
                     accession = feature.qualifiers["protein_id"][0]
                     gene_name = feature.qualifiers.get("gene", [""])[0]
-                    product = feature.qualifiers["product"][0]
-                    protein_seq = feature.qualifiers["translation"][0]
+                    product = feature.qualifiers.get("product", [""])[0]
+                    protein_seq = feature.qualifiers.get("translation", [""])[0]
                     hash_value = calculate_md5_hash("prot", protein_seq)
                     protein_sequences.append((accession, gene_name, product, protein_seq, hash_value))
     return protein_sequences
 
 
-def seq_to_fasta(accession: str, gene: str, desc: str, hash_str: str, sequence: str) -> str:
+def create_fasta_for_db(accession: str, gene: str, desc: str, hash_str: str, sequence: str) -> str:
     """
     Converts a sequence to a FASTA format.
     Args:
@@ -92,16 +93,14 @@ def is_valid_protein_fasta(file_path: str) -> bool:
     - bool: True if the file is a valid protein FASTA file, False otherwise.
     """
     if not is_valid_path(file_path):
-        print(f"File not found: {file_path}")
-        return False
+        raise FileNotFoundError(f"File not found: {file_path}")
 
     try:
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
+        with open(file_path, 'r') as fasta_file:
+            lines = fasta_file.readlines()
 
         if not lines or not lines[0].startswith('>'):
-            print(f"File does not start with a '>' character.\nCheck: {file_path}")
-            return False
+            raise ValueError(f"File does not start with a '>' character.\nCheck: {file_path}")
 
         id_count = 0
         for i, line in enumerate(lines):
@@ -110,20 +109,70 @@ def is_valid_protein_fasta(file_path: str) -> bool:
                 if len(line) > 1:
                     id_count += 1
             elif not is_protein_sequence(line):
-                print(
+                raise ValueError(
                     f"Invalid sequence character(s) found in line {i + 1} of the input protein FASTA file."
                     f"\nCheck: {file_path}")
-                return False
 
         if id_count == 0:
-            print(f"No valid protein IDs found in the file.\nCheck: {file_path}")
-            return False
+            raise ValueError(f"No valid protein IDs found in the file.\nCheck: {file_path}")
 
         return True
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"\n-- An error occurred: {e}")
         return False
+
+
+def is_valid_protein_a3m(file_path: str) -> bool:
+    """
+    Validates a protein A3M file.
+
+    Parameters:
+    - file_path: Path to the A3M file to be validated.
+
+    Returns:
+    - bool: True if the file is a valid protein A3M file, False otherwise.
+    """
+    null_character = chr(0)
+    if not is_valid_path(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    try:
+        with open(file_path, 'r') as a3m_file:
+            lines = a3m_file.readlines()
+
+        if not lines or not lines[0].startswith('#'):
+            raise ValueError(f"File does not start with a '#' character.\nCheck: {file_path}")
+
+        a3m_id_count = 0
+        for i, line in enumerate(lines[1:]):
+            line = line.strip()
+            if line.startswith('>'):
+                if len(line) > 1:
+                    a3m_id_count += 1
+            elif not is_protein_sequence(line.replace("-", "").replace(null_character, "").upper()):
+                raise ValueError(
+                    f"Invalid sequence character(s) found in line {i + 1} of the input protein FASTA file."
+                    f"\nCheck: {file_path}")
+
+        if a3m_id_count == 0:
+            raise ValueError(f"No valid protein IDs found in the file.\nCheck: {file_path}")
+
+        return True
+
+    except Exception as e:
+        print(f"\n-- An error occurred: {e}")
+        return False
+
+
+def is_a3m_monomer(a3m_file_path: str) -> bool:
+    with open(a3m_file_path, 'r') as a3m_file:
+        for line in a3m_file:
+            if line.startswith("#"):
+                split_line = line.rstrip().split("\t")
+                if split_line[1] == "1":
+                    return True
+    return False
 
 
 def get_valid_sequence_records_from_fasta(fasta_file: str) -> List[Dict]:
@@ -327,14 +376,15 @@ def combine_gappy_sequences(accessions: List, sequences: List) -> Sequence:
 
 class SequenceDbFasta:
     def __init__(self, fasta_path: str) -> None:
-        protein_hash_to_fasta = {}
+        protein_hash_to_record = {}
         for record in SeqIO.parse(fasta_path, "fasta"):
             protein_hash = calculate_md5_hash("prot", str(record.seq))
-            protein_hash_to_fasta[protein_hash] = record.format("fasta")
-        self.sequence_records = protein_hash_to_fasta
+            fasta_record = Fasta_record(record.id, record.format("fasta"))
+            protein_hash_to_record[protein_hash] = fasta_record
+        self.sequence_records = protein_hash_to_record
 
-    def get_fasta_by_protein_hash(self, protein_hash: str) -> str:
+    def get_record_by_protein_hash(self, protein_hash: str) -> Fasta_record:
         if protein_hash in self.sequence_records:
             return self.sequence_records[protein_hash]
-        print("Warning: File does not contain sequence.")
-        return ""
+        raise ValueError("Warning: File does not contain sequence.")
+

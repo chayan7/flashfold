@@ -1,3 +1,6 @@
+# Code is collected from: https://gitlab.com/ElofssonLab/huintaf2/-/blob/main/bin/pDockQ2.py
+# And changed accordingly to fit the current project.
+
 import os
 import re
 import sys
@@ -207,7 +210,7 @@ def sigmoid(x: float, l_cap: float, x0: float, k: float, b: float) -> float:
     return y
 
 
-def generate_score_matrix(path_to_predicted_structure: str, cutoff: float, is_monomer: bool) -> None:
+def generate_score_matrix(path_to_predicted_structure: str, cutoff: Optional[float], is_monomer: bool) -> None:
     """
     Generates a score matrix for the predicted structure.
 
@@ -219,77 +222,85 @@ def generate_score_matrix(path_to_predicted_structure: str, cutoff: float, is_mo
     score_matrix_filepath = os.path.join(path_to_predicted_structure, "score.tsv")
 
     if is_monomer:
+        if cutoff:
+            print(f"\n-- Warning: Cutoff {cutoff} is not applicable for monomers, "
+                  f"but will be used for pDockQ2 scoring for multimers (if provided any).\n")
+            pass
         log_file = os.path.join(path_to_predicted_structure, "log.txt")
         with open(log_file, "r") as log_in, open(score_matrix_filepath, "w") as score_out:
+            # noinspection PyTypeChecker
             print("name", "pLDDT", "pTM", sep="\t", file=score_out)
             for line in log_in:
                 scores = extract_plddt_ptm(line)
                 if scores:
                     name, plddt, ptm = scores
+                    # noinspection PyTypeChecker
                     print(name, plddt, ptm, sep="\t", file=score_out)
                 else:
                     pass
         return None
 
-    all_files = os.listdir(path_to_predicted_structure)
-    pdb_files = [f for f in all_files if f.endswith(".pdb") and "unrelaxed" in f]
+    if not is_monomer:
+        cutoff_score = cutoff if cutoff else 10.0
+        all_files = os.listdir(path_to_predicted_structure)
+        pdb_files = [f for f in all_files if f.endswith(".pdb") and "unrelaxed" in f]
 
-    names = []
-    mean_pdockq_scores = []
-    min_pdockq_scores = []
-    all_pdockq2 = []
-    iptm = []
-    iptm_ptm = []
-    plddt_score = []
-    for predicted_pdb in pdb_files:
-        pdb_file = predicted_pdb.split("/")[-1]
-        if 'rank' not in pdb_file:
-            print(f"Skipping {pdb_file} as it does not contain 'rank' in the file name.")
-            return
+        names = []
+        mean_pdockq_scores = []
+        min_pdockq_scores = []
+        all_pdockq2 = []
+        iptm = []
+        iptm_ptm = []
+        plddt_score = []
+        for predicted_pdb in pdb_files:
+            pdb_file = predicted_pdb.split("/")[-1]
+            if 'rank' not in pdb_file:
+                print(f"Skipping {pdb_file} as it does not contain 'rank' in the file name.")
+                return
 
-        json_file_name = predicted_pdb.replace(".pdb", ".json").replace("unrelaxed", "scores")
-        json_file_path = os.path.join(path_to_predicted_structure, json_file_name)
-        names.append(predicted_pdb)
-        json_file = load_json_file(json_file_path)
+            json_file_name = predicted_pdb.replace(".pdb", ".json").replace("unrelaxed", "scores")
+            json_file_path = os.path.join(path_to_predicted_structure, json_file_name)
+            names.append(predicted_pdb)
+            json_file = load_json_file(json_file_path)
 
-        iptm_score = json_file['iptm']
-        iptm.append(iptm_score)
-        iptm_ptm_score = 0.8 * json_file["iptm"] + 0.2 * json_file["ptm"]
-        iptm_ptm.append(iptm_ptm_score)
+            iptm_score = json_file['iptm']
+            iptm.append(iptm_score)
+            iptm_ptm_score = 0.8 * json_file["iptm"] + 0.2 * json_file["ptm"]
+            iptm_ptm.append(iptm_ptm_score)
 
-        mean_plddt = np.mean(json_file["plddt"])
-        plddt_score.append(mean_plddt)
+            mean_plddt = np.mean(json_file["plddt"])
+            plddt_score.append(mean_plddt)
 
-        pdb_file_path = os.path.join(path_to_predicted_structure, predicted_pdb)
-        structure = load_structure(pdb_file_path)
-        num_res, if_plddt, plddt, num_diso, pdockq, length = calc_pdockq(structure, cutoff)
+            pdb_file_path = os.path.join(path_to_predicted_structure, predicted_pdb)
+            structure = load_structure(pdb_file_path)
+            num_res, if_plddt, plddt, num_diso, pdockq, length = calc_pdockq(structure, cutoff_score)
 
-        chain_number = len(length)
-        if chain_number < 2:
-            print(f'Warning: pDockQ2 score is not calculated because predicted pdb file contains {chain_number} '
-                  f'chain. FlashFold currently offers calculation when the pdb file contains at least two chains.\n')
-            sys.exit()
+            chain_number = len(length)
+            if chain_number < 2:
+                print(f'Warning: pDockQ2 score is not calculated because predicted pdb file contains {chain_number} '
+                      f'chain. FlashFold currently offers calculation when a pdb file contains at least two chains.\n')
+                sys.exit()
 
-        mean_pdockq = sum(pdockq) / len(pdockq)
-        min_pdockq = min(pdockq)
-        mean_pdockq_scores.append(mean_pdockq)
-        min_pdockq_scores.append(min_pdockq)
+            mean_pdockq = sum(pdockq) / len(pdockq)
+            min_pdockq = min(pdockq)
+            mean_pdockq_scores.append(mean_pdockq)
+            min_pdockq_scores.append(min_pdockq)
 
-        chain_counter = 0
-        pdockq_scores_per_model = []
-        for chain_unit in structure.get_chains():
-            chain_id = chain_unit.get_id()
-            pdockq_score_with_chain = f"{chain_id}: {pdockq[chain_counter]}"
-            pdockq_scores_per_model.append(pdockq_score_with_chain)
-            chain_counter += 1
+            chain_counter = 0
+            pdockq_scores_per_model = []
+            for chain_unit in structure.get_chains():
+                chain_id = chain_unit.get_id()
+                pdockq_score_with_chain = f"{chain_id}: {pdockq[chain_counter]}"
+                pdockq_scores_per_model.append(pdockq_score_with_chain)
+                chain_counter += 1
 
-        all_pdockq2.append(pdockq_scores_per_model)
+            all_pdockq2.append(pdockq_scores_per_model)
 
-    score_dict = {'name': names, 'mean_pDockQ2': mean_pdockq_scores, 'min_pDockQ2': min_pdockq_scores,
-                  'ipTM': iptm, 'ipTM+pTM': iptm_ptm, 'mplDDT': plddt_score, 'pDockQ2_per_chain': all_pdockq2}
-    collect_data = pd.DataFrame(score_dict)
-    sorted_collected_data = collect_data.sort_values(by='name')
-    sorted_collected_data.to_csv(score_matrix_filepath, sep='\t', index=False)
-    print(f"-- {current_time()} > Completed pDockQ2 score calculation for predicted complex\n")
-    return None
+        score_dict = {'name': names, 'mean_pDockQ2': mean_pdockq_scores, 'min_pDockQ2': min_pdockq_scores,
+                      'ipTM': iptm, 'ipTM+pTM': iptm_ptm, 'mplDDT': plddt_score, 'pDockQ2_per_chain': all_pdockq2}
+        collect_data = pd.DataFrame(score_dict)
+        sorted_collected_data = collect_data.sort_values(by='name')
+        sorted_collected_data.to_csv(score_matrix_filepath, sep='\t', index=False)
+        print(f"-- {current_time()} > Completed pDockQ2 score calculation for predicted complex\n")
+        return None
 
