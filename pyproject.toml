@@ -1,13 +1,33 @@
 [tool.poetry]
 name = "flashfold"
-version = "1.0.0"
+version = "1.0.1"
 description = "A tool for protein and protein complex structure prediction."
+repository = "https://github.com/chayan7/flashfold"
 authors = ["chayan7 <chayan_saha@outlook.com>"]
 license = "MIT"
 readme = "README.md"
+include = ["CHANGELOG.md"]
+
+classifiers = [
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Build Tools",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Unix Shell",
+    "Programming Language :: Perl",
+    "Development Status :: 4 - Beta",
+]
 
 [tool.poetry.scripts]
 flashfold = "flashfold.main:main"
+
+[[tool.poetry.source]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+priority = "primary"
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/chayan7/flashfold/issues"
 
 [build-system]
 requires = ["poetry-core"]

@@ -64,9 +64,13 @@ fi
 # macOS specific commands
 if [ "$machine" == "Mac" ]; then
     check_and_install wget wget
+    check_and_install gnu-sed gnu-sed
     check_and_install hhsearch brewsci/bio/hh-suite
-    check_and_install kalign kalign
+    check_and_install kalign brewsci/bio/kalign
     check_and_install jackhmmer hmmer
+    if [ "$OS_TYPE" == "mac-silicon" ]; then
+        check_and_install cmake cmake
+    fi
 fi
 
 # Conda installation & version check
