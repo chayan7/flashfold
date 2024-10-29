@@ -26,9 +26,13 @@ jobs:
       if: steps.cache-conda-env.outputs.cache-hit != 'true'
       run: |
         conda env update -f envs/linux-environment.yml
-    - name: Run tests
+    - name: Activate Conda environment and build package
       run: |
         source $(conda info --base)/etc/profile.d/conda.sh
         conda activate flashfold
         poetry install
+    - name: Run tests
+      run: |
+        source $(conda info --base)/etc/profile.d/conda.sh
+        conda activate flashfold
         pytest -k "not test_fold_batch"
