@@ -17,7 +17,20 @@ jobs:
     - name: Install dependencies
       run: |
         conda env update -f envs/linux-environment.yml
-    - name: Test
+    - name: Cache downloaded weights
+      id: cache-weights
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/colabfold
+        key: ${{ runner.os }}-colabfold-${{ hashFiles('envs/linux-environment.yml') }}
+    - name: Activate environment and download weights
+      if: steps.cache-weights.outputs.cache-hit != 'true'
       run: |
-        $(conda info --base)/envs/flashfold/bin/colabfold_batch -h
-        echo "Installation completed."
+        source $(conda info --base)/etc/profile.d/conda.sh
+        conda activate flashfold
+        python3 -m colabfold.download
+    - name: Run tests
+      run: |
+        source $(conda info --base)/etc/profile.d/conda.sh
+        conda activate flashfold
+        pytest -k "not test_fold_batch"
