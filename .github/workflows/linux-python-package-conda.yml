@@ -30,10 +30,5 @@ jobs:
       run: |
         source $(conda info --base)/etc/profile.d/conda.sh
         conda activate flashfold
-        pytest -k "not test_fold_batch"
-    - name: Run tests
-      run: |
-        source $(conda info --base)/etc/profile.d/conda.sh
-        conda activate flashfold
         poetry install
         pytest -k "not test_fold_batch"
