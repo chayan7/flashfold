@@ -206,14 +206,17 @@ def predict_3d_structure(args) -> None:
         run_jackhmmer(unique_fasta_file_paths, sequence_database.fasta_db, args.threads, temp_dir_path)
 
         # copy homology search output
-        copy_a3m_files_commands = []
+        copy_alignment_files_commands = []
         for query_hash in query_hash_to_msa_paths:
             for msa_path in query_hash_to_msa_paths[query_hash]:
-                copy_command = f"cp {temp_dir_path}/{query_hash}.a3m {msa_path}"
-                copy_a3m_files_commands.append(copy_command)
+                copy_a3m_command = f"cp {temp_dir_path}/{query_hash}.a3m {msa_path}"
+                copy_sto_command = f"cp {temp_dir_path}/{query_hash}.sto {msa_path}"
+                copy_alignment_files_commands.append(copy_a3m_command)
+                copy_alignment_files_commands.append(copy_sto_command)
 
-        log_text = "files" if len(copy_a3m_files_commands) > 1 else "file"
-        run_jobs_in_parallel(args.threads, 1, copy_a3m_files_commands, f"Copying a3m {log_text}")
+        log_text = "files" if len(copy_alignment_files_commands) > 1 else "file"
+        run_jobs_in_parallel(args.threads, 1, copy_alignment_files_commands,
+                             f"Copying alignment {log_text}")
 
         # Process homology search output
         for each_fasta in infile_features_json.get_data():
@@ -245,7 +248,7 @@ def predict_3d_structure(args) -> None:
             fold_features.add_entry(each_fasta, "is_monomer", is_monomer)
             fold_features.add_entry(each_fasta, "time_log", time_log_file)
             #remove child msa path that contains msa per chain
-            shutil.rmtree(alignment_path)
+            #shutil.rmtree(alignment_path)
 
         # remove temp directory
         shutil.rmtree(temp_dir_path)
