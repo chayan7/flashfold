@@ -248,7 +248,7 @@ def predict_3d_structure(args) -> None:
             fold_features.add_entry(each_fasta, "is_monomer", is_monomer)
             fold_features.add_entry(each_fasta, "time_log", time_log_file)
             #remove child msa path that contains msa per chain
-            #shutil.rmtree(alignment_path)
+            shutil.rmtree(alignment_path)
 
         # remove temp directory
         shutil.rmtree(temp_dir_path)
