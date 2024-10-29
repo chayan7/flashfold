@@ -247,8 +247,6 @@ def get_files_from_path_by_extension(path: str, extension: str) -> list:
     for potential_file in all_contents_in_path:
         if os.path.isfile(potential_file) and has_desired_file_extensions(potential_file, [extension]):
             file_list.append(potential_file)
-    if len(file_list) == 0:
-        raise FileNotFoundError(f"No files with {extension} extension found in {path}")
     return file_list
 
 
