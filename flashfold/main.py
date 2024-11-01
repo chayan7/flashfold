@@ -98,7 +98,7 @@ def main() -> None:
     fold.add_argument("-o", "--output", metavar="<Output_Dir>", required=True,
                       help="path that will contain output")
     fold.add_argument("-t", "--threads", metavar="<Integer, >=1>", type=is_pos_int, default=16,
-                      help="number of threads. (default: 16)")
+                      help="number of threads. Only utilized when query is a path to FASTA file(s) (default: 16)")
     fold.add_argument("--batch", action="store_true", default=False,
                       help="process multiple queries (default: False). If set, --query/-q should be the path to a "
                            "directory containing FASTA files.")

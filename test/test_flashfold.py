@@ -154,7 +154,6 @@ def test_fold_batch():
          "-q", "test/input/msa/",
          "--batch",
          "-o", "test/output/fold-batch/",
-         "-t", "1",
          "--num_models", "1",
          "--num_recycle", "1"],
         capture_output=True,

@@ -2,16 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.3] - 2024-10-29
+## [1.0.3] - 2024-11-02
 
 #### Added
 - Version number is added to the help message.
 
 #### Changed
-- NA
+- README.md file is updated with more examples.
 
 #### Fixed
-- Alignment file copying issue is fixed.
+- Alignment file copy issue is fixed.
+- A3M file input issue (database requirement) is fixed.
 
 #### Removed
 - NA
