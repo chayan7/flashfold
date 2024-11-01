@@ -59,7 +59,8 @@ def run_jobs_in_parallel(thread_count: int, threads_per_job: int,  jobs: List, j
         q.put(command)
 
     # Calculate how many jobs can run in parallel based on thread count and threads_per_job
-    jobs_in_parallel = thread_count // threads_per_job  # This will limit how many jobs can run simultaneously
+    # This will limit how many jobs can run simultaneously
+    jobs_in_parallel = min(thread_count // threads_per_job, len(jobs))
     print(f"\t§ Executing total {len(jobs)} jobs ... ")
     threads = []
     for i in range(jobs_in_parallel * threads_per_job):

@@ -117,23 +117,26 @@ def get_results_and_temp_dirs(out_dir_path: str, rewrite: bool, is_temp_needed: 
 
 
 def predict_3d_structure(args) -> None:
-    query = args.query
-    is_batch = args.batch
-    database_path = os.path.realpath(args.database)
-
-    # Check if the database directory is valid
-    if not is_valid_database_dir(database_path):
-        sys.exit()
-
     # Time_log for the entire program
     prediction_start_time = current_time_raw()
+
+    query = args.query
+    is_batch = args.batch
 
     # Get input FASTA files
     valid_input_files = get_valid_input_files_with_type(query, is_batch)
     is_fasta = valid_input_files.file_ext == "fasta"
 
-    # Load sequence database
-    sequence_database = Database(database_path)
+    sequence_database = None
+    if is_fasta:
+        database_path = os.path.realpath(args.database)
+
+        # Check if the database directory is valid
+        if not is_valid_database_dir(database_path):
+            sys.exit()
+
+        # Load sequence database
+        sequence_database = Database(database_path)
 
     # Create a JsonStructure object to store the features of the input FASTA files
     infile_features_json = JsonStructure()
@@ -206,14 +209,17 @@ def predict_3d_structure(args) -> None:
         run_jackhmmer(unique_fasta_file_paths, sequence_database.fasta_db, args.threads, temp_dir_path)
 
         # copy homology search output
-        copy_a3m_files_commands = []
+        copy_alignment_files_commands = []
         for query_hash in query_hash_to_msa_paths:
             for msa_path in query_hash_to_msa_paths[query_hash]:
-                copy_command = f"cp {temp_dir_path}/{query_hash}.a3m {msa_path}"
-                copy_a3m_files_commands.append(copy_command)
+                copy_a3m_command = f"cp {temp_dir_path}/{query_hash}.a3m {msa_path}"
+                copy_sto_command = f"cp {temp_dir_path}/{query_hash}.sto {msa_path}"
+                copy_alignment_files_commands.append(copy_a3m_command)
+                copy_alignment_files_commands.append(copy_sto_command)
 
-        log_text = "files" if len(copy_a3m_files_commands) > 1 else "file"
-        run_jobs_in_parallel(args.threads, 1, copy_a3m_files_commands, f"Copying a3m {log_text}")
+        log_text = "files" if len(copy_alignment_files_commands) > 1 else "file"
+        run_jobs_in_parallel(args.threads, 1, copy_alignment_files_commands,
+                             f"Copying alignment {log_text}")
 
         # Process homology search output
         for each_fasta in infile_features_json.get_data():

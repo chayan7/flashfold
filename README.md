@@ -85,7 +85,7 @@ Conda is a package manager that helps to install and manage dependencies. It can
 
 ###### ✔ Step 3: Install dependencies under conda environment
 
-FoldFlash internally uses `LocalColabFold` (local version of ColabFold) for structure prediction. 
+FlashFold internally uses `LocalColabFold` (local version of ColabFold) for structure prediction. 
 The installation instructions for LocalColabFold can be found [here](https://github.com/YoshitakaMo/localcolabfold). 
 
 To streamline the installation process for both Linux and macOS users, FlashFold provides a convenient installation 
@@ -127,6 +127,10 @@ calculate the quality of each interface.
 ## Application
 
 - ###  Database
+  In order to predict the structure of proteins and protein complexes, FlashFold requires a sequence database. The database
+  is used for homology sequence detection as the input sequence to generate a multiple sequence alignment (MSA) . 
+  FlashFold provides the following options:
+
   <br>
   <details><summary>Download in-built database</summary>
 
@@ -184,17 +188,24 @@ calculate the quality of each interface.
   </details>
 
 - ###  Protein structure prediction
+    FlashFold provides a subcommand `fold` to predict the structure of proteins and protein complexes. See details below:
+
   <br>
   <details><summary>Input file preparation</summary>
-  
-  FlashFold takes amino acid sequence in FASTA format as input. 
-  - It is recommended to keep the file name short and readable. Avoid using special characters in the file name.
-  - It should be noted that, when `--batch` is set, the file name will be used as a directory to store results 
-  under user provided output directory. If any special characters are found `except "." or "_"` in the file name, 
-  it will be replaced with `"_"`.
-  - File extension should be `.fasta`.
-  
-  Few examples are shown below:
+
+  - FlashFold takes amino acid sequence in FASTA format as input. Also, it can take multiple FASTA files as input 
+  when `--batch` is set. The input file should follow the following guidelines:
+    - It is recommended to keep the file name short and readable. Avoid using special characters in the file name.
+    - It should be noted that, when `--batch` is set, the file name will be used as a directory to store results 
+    under user provided output directory. If any special characters are found `except "." or "_"` in the file name, 
+    it will be replaced with `"_"`.
+    - File extension should be `.fasta`.
+
+  - Additionally, FlashFold can take A3M file as input. The A3M file preferably should be generated using `FlashFold` 
+  itself using the `--only_msa` option. User customised A3M file can be served as input as well. `--batch` option 
+  is also applicable for A3M file input as FASTA.
+
+  Few examples for FASTA sequence as input are shown below:
 
   **Monomer**
   ```
@@ -240,7 +251,7 @@ calculate the quality of each interface.
     
     FlashFold offers subcommand `fold` to predict the structure of proteins and protein complexes. FlashFold uses 
     different algorithm and model for monomer and multimer prediction. However, the user does not need to specify it 
-    because FoldFlash can automatically detect based on the input sequence. 
+    because FlashFold can automatically detect based on the input sequence. 
     
     Few examples are shown below:
     
@@ -252,7 +263,19 @@ calculate the quality of each interface.
     __Moderate__
     
     ```shell
-    flashfold fold -q /path/to/query.fasta -d /path/to/database/ -o /path/to/output/ -t number_of_threads --num_recycle 10   
+    flashfold fold -q /path/to/query.fasta -d /path/to/database/ -o /path/to/output/ -t number_of_threads --only_msa   
+    ```
+    
+    __Advanced__
+    
+    ```shell
+    flashfold fold -q /path/to/query.a3m -o /path/to/output/  
+    ```
+    
+    __Expert__
+    
+    ```shell
+    flashfold fold -q /path/to/dir/multiple_fasta_files --batch -d /path/to/database/ -o /path/to/output/ -t number_of_threads
     ```
     </details>
   

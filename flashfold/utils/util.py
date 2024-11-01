@@ -234,7 +234,7 @@ def is_installed(tool_name: str) -> bool:
     if tool_path:
         return True
     else:
-        return False
+        raise FileNotFoundError(f"{tool_name} is not installed. Please install it.")
 
 
 def get_files_from_path_by_extension(path: str, extension: str) -> list:

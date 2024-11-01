@@ -93,6 +93,8 @@ class Database:
     def process_homology_search_output(self, path_to_alignment: str, query_seq_hashes: List[str],
                                        json_out_file: str) -> None:
         sto_files = get_files_from_path_by_extension(path_to_alignment, ".sto")
+        if len(sto_files) == 0:
+            raise FileNotFoundError(f"No .sto files found in the directory: {path_to_alignment}")
         gbk_to_hits: Dict[str, List[str]] = defaultdict(list)
         for query_seq_hash in query_seq_hashes:
             for sto_file_path in sto_files:

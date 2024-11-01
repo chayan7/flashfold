@@ -7,6 +7,7 @@ from flashfold.utils import is_zero_or_pos_int, is_pos_int
 def main() -> None:
     # Create the main parser
     parser = argparse.ArgumentParser(description='Predict protein structure from sequence.')
+    parser.add_argument("-v", "--version", action="version", version="∞∞ FlashFold v1.0.3 ∞∞")
 
     # Create subparsers for different commands
     subparsers = parser.add_subparsers(dest='command', title='commands',
@@ -90,13 +91,14 @@ def main() -> None:
     # command fold parser
     desc_fold = ''' Predict structure from FASTA sequence. '''
     fold = subparsers.add_parser('fold', description=desc_fold)
-    fold.add_argument("-q", "--query", metavar="<FILE_In|File_Dir>", required=True, help="path to FASTA file(s)")
-    fold.add_argument("-d", "--database", metavar="<Database_Dir>", required=True,
+    fold.add_argument("-q", "--query", metavar="<FILE_In|File_Dir>", required=True,
+                      help="path to FASTA/A3M file(s)")
+    fold.add_argument("-d", "--database", metavar="<Database_Dir>",
                       help="path to sequence database(s) created using create_db command")
     fold.add_argument("-o", "--output", metavar="<Output_Dir>", required=True,
                       help="path that will contain output")
     fold.add_argument("-t", "--threads", metavar="<Integer, >=1>", type=is_pos_int, default=16,
-                      help="number of threads. (default: 16)")
+                      help="number of threads. Only utilized when query is a path to FASTA file(s) (default: 16)")
     fold.add_argument("--batch", action="store_true", default=False,
                       help="process multiple queries (default: False). If set, --query/-q should be the path to a "
                            "directory containing FASTA files.")

@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3] - 2024-11-02
+
+#### Added
+- Version number is added to the help message.
+
+#### Changed
+- README.md file is updated with more examples.
+
+#### Fixed
+- Alignment file copy issue is fixed.
+- A3M file input issue (database requirement) is fixed.
+
+#### Removed
+- NA
+
+
 ## [1.0.2] - 2024-10-28
 
 #### Added
@@ -18,7 +34,6 @@ All notable changes to this project will be documented in this file.
 #### Fixed
 - Cutoff value is now only applicable for multimer prediction.
 - All subcommands are fixed.
-
 
 #### Removed
 - No longer depends on `HH-suite`, `Kalign` and `mmseqs2`.

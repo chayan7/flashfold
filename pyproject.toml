@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "flashfold"
-version = "1.0.2"
+version = "1.0.3"
 description = "A tool for protein and protein complex structure prediction."
 repository = "https://github.com/chayan7/flashfold"
 authors = ["chayan7 <chayan_saha@outlook.com>"]
