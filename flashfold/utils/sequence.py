@@ -62,7 +62,7 @@ def create_fasta_for_db(accession: str, gene: str, desc: str, hash_str: str, seq
     return seq_record.format("fasta")
 
 
-def is_protein_sequence(sequence: str) -> bool:
+def is_protein_sequence(sequence: str, is_seq_from_msa: bool = False) -> bool:
     """
     Checks if a given sequence is a valid protein sequence.
 
@@ -77,7 +77,16 @@ def is_protein_sequence(sequence: str) -> bool:
     # end of the valid list: U=Selenocysteine; O=Pyrrolysine
 
     valid_amino_acids = set("ARNDCEQGHILKMFPSTWYVUO")
+
+    if is_seq_from_msa:
+        extended_aa = set("BJXZ")
+        valid_amino_acids.update(extended_aa)
+
     sequence = sequence.upper()  # Convert sequence to uppercase
+
+    for char in sequence:
+        if char not in valid_amino_acids:
+            print(f"Invalid character found in sequence: {char}")
 
     return all(char in valid_amino_acids for char in sequence)
 
@@ -145,14 +154,14 @@ def is_valid_protein_a3m(file_path: str) -> bool:
             raise ValueError(f"File does not start with a '#' character.\nCheck: {file_path}")
 
         a3m_id_count = 0
-        for i, line in enumerate(lines[1:]):
-            line = line.strip()
+        for i, raw_line in enumerate(lines[1:]):
+            line = raw_line.strip()
             if line.startswith('>'):
                 if len(line) > 1:
                     a3m_id_count += 1
-            elif not is_protein_sequence(line.replace("-", "").replace(null_character, "").upper()):
+            elif not is_protein_sequence(line.replace("-", "").replace(null_character, "").upper(), True):
                 raise ValueError(
-                    f"Invalid sequence character(s) found in line {i + 1} of the input protein FASTA file."
+                    f"Invalid sequence character(s) found in line {i + 1} of the input protein a3m file."
                     f"\nCheck: {file_path}")
 
         if a3m_id_count == 0:

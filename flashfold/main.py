@@ -91,8 +91,9 @@ def main() -> None:
     # command fold parser
     desc_fold = ''' Predict structure from FASTA sequence. '''
     fold = subparsers.add_parser('fold', description=desc_fold)
-    fold.add_argument("-q", "--query", metavar="<FILE_In|File_Dir>", required=True, help="path to FASTA file(s)")
-    fold.add_argument("-d", "--database", metavar="<Database_Dir>", required=True,
+    fold.add_argument("-q", "--query", metavar="<FILE_In|File_Dir>", required=True,
+                      help="path to FASTA/A3M file(s)")
+    fold.add_argument("-d", "--database", metavar="<Database_Dir>",
                       help="path to sequence database(s) created using create_db command")
     fold.add_argument("-o", "--output", metavar="<Output_Dir>", required=True,
                       help="path that will contain output")

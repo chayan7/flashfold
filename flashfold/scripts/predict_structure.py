@@ -117,23 +117,26 @@ def get_results_and_temp_dirs(out_dir_path: str, rewrite: bool, is_temp_needed: 
 
 
 def predict_3d_structure(args) -> None:
-    query = args.query
-    is_batch = args.batch
-    database_path = os.path.realpath(args.database)
-
-    # Check if the database directory is valid
-    if not is_valid_database_dir(database_path):
-        sys.exit()
-
     # Time_log for the entire program
     prediction_start_time = current_time_raw()
+
+    query = args.query
+    is_batch = args.batch
 
     # Get input FASTA files
     valid_input_files = get_valid_input_files_with_type(query, is_batch)
     is_fasta = valid_input_files.file_ext == "fasta"
 
-    # Load sequence database
-    sequence_database = Database(database_path)
+    sequence_database = None
+    if is_fasta:
+        database_path = os.path.realpath(args.database)
+
+        # Check if the database directory is valid
+        if not is_valid_database_dir(database_path):
+            sys.exit()
+
+        # Load sequence database
+        sequence_database = Database(database_path)
 
     # Create a JsonStructure object to store the features of the input FASTA files
     infile_features_json = JsonStructure()

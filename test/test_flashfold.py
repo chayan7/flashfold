@@ -153,7 +153,6 @@ def test_fold_batch():
         ["flashfold", flashfold_sub,
          "-q", "test/input/msa/",
          "--batch",
-         "-d", "test/output/custom_database/",
          "-o", "test/output/fold-batch/",
          "-t", "1",
          "--num_models", "1",
