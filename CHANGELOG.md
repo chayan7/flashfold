@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+
+## [1.0.4] - 2025-01-22
+
+#### Added
+- Added link of the databases to json file.
+
+#### Changed
+- README.md file is updated.
+
+#### Fixed
+- NA
+
+#### Removed
+- NA
+
+
 ## [1.0.3] - 2024-11-02
 
 #### Added

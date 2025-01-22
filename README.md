@@ -5,6 +5,8 @@
 # FlashFold: a command-line tool for faster protein and protein complex structure prediction
 
 
+[![Testing on Linux](https://github.com/chayan7/flashfold/actions/workflows/linux-python-package-conda.yml/badge.svg?event=push)](https://github.com/chayan7/flashfold/actions/workflows/linux-python-package-conda.yml)
+
 ## Introduction
 
 Proteins are vital to cellular functions and their tertiary structure is key to understanding their biological roles. 
@@ -53,21 +55,7 @@ you haven't installed it.
 </details>
 <br>
 
-##### 📌 FlashFold can be installed using the following methods:
-<br>
-<details>
-<summary> 1. Python Package Index (PyPI) </summary>
-
-FlashFold can be directly installed through [PyPI](https://pypi.org/) using the following command:
-  ```sh
-  pip install -i https://test.pypi.org/simple/ flashfold==1.0.0
-  ```
-</details>
-<br>
-<details>
-<summary> 2. Development version </summary>
-
-FlashFold can be installed from the development version using the following steps:
+##### 📌 FlashFold can be installed using the following steps:
 
 ###### ✔ Step 1: Install Conda (*Skip this step if conda is already installed*)
 
@@ -96,7 +84,7 @@ script that sets up the required dependencies within a conda environment named `
   conda activate flashfold     # Activate the environment
   ```
 
-###### ✔ Step 4: Install the Python Package
+###### ✔ Step 4: Install the package
   ```sh
   poetry install
   ```
@@ -109,7 +97,6 @@ script that sets up the required dependencies within a conda environment named `
   ```sh
   pytest
   ```
-</details>
 
 ## Workflow
 
@@ -117,8 +104,8 @@ FlashFold uses amino acid sequences to predict the structure of proteins and pro
 FlashFold uses the following steps:
 
 1. *Sequence Alignment*: FlashFold uses `jackhmmer` to generate a multiple sequence alignment (MSA) for the input 
-sequence. FlashFold reduces the MSA generation time significantly by using a compact database (see details here).
-2. *Structure Prediction*: The MSA is then formatted and used as an input for `colabfold` to predict the structure.
+sequence. FlashFold reduces the MSA generation time significantly by using a compact database.
+2. *Structure Prediction*: The MSA is then formatted and used as an input for `colabfold_batch` to predict the structure.
 3. *Model Refinement (optional)*: Based on user input, the predicted structure is refined using `OpenMM` and `OpenStructure`.
 4. *Quality Metrics*: FlashFold provides a table of quality metrics for the predicted structures. For protein 
 complexes, it uses the Predicted DockQ version 2 ([pDockQ2](https://doi.org/10.1093/bioinformatics/btad424)) script to 
@@ -134,12 +121,12 @@ calculate the quality of each interface.
   <br>
   <details><summary>Download in-built database</summary>
 
-  FlashFold uses a compact database (~50 GB) for MSA. The database can be downloaded using the following command:
+  FlashFold provides three in-built databases, that can be downloaded using the following command:
   ```sh
-  flashfold download_db -i database.json -o /path/to/downloaded_db/
+  flashfold download_db -i /path/to/database.json -o /path/to/downloaded_db/
   ```
-  The `database.json` file can be downloaded found [here](https://github.com/chayan7/flashfold/blob/main/database.json). 
-  This is the primary database used by FlashFold.
+  The `database.json` file can be found [here](https://github.com/chayan7/flashfold/blob/main/database.json). 
+  User can avoid downloading a database by removing the database name and the download link in the json file.
 
   </details>
   <br>
@@ -308,4 +295,3 @@ and packages:
 *   [ujson](https://github.com/ultrajson/ultrajson)
 
 
-[![Linux Python Package using Conda](https://github.com/chayan7/flashfold/actions/workflows/linux-python-package-conda.yml/badge.svg?event=push)](https://github.com/chayan7/flashfold/actions/workflows/linux-python-package-conda.yml)

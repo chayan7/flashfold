@@ -20,6 +20,7 @@ def download_database_from_cloud(args) -> None:
           f"Please wait until the process is finished.\n")
 
     for db_name in database_dict:
+        print(f"-- Downloading {db_name} ...")
         database_link = database_dict[db_name]
         wget_file_from_url(database_link, output_path)
         zip_file = f"{output_path}/{db_name}.zip"

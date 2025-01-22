@@ -336,7 +336,7 @@ def update_time_log(log_file: str, message: str, use_timestamp: bool) -> None:
     """
     with open(log_file, "a") as f:
         if use_timestamp:
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
             f.write(f"[{timestamp}] {message}\n")
         else:
             f.write(f"{message}\n")
