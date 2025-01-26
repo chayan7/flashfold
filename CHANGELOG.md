@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.0.5] - 2025-01-26
+
+#### Added
+- Doi from biorxiv to README.md file.
+
+#### Changed
+- README.md file is updated.
+- Version number is updated.
+- Git workflow file name is updated.
+
+#### Fixed
+- NA
+
+#### Removed
+- NA
+
+
 ## [1.0.4] - 2025-01-22
 
 #### Added

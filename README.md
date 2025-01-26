@@ -5,7 +5,7 @@
 # FlashFold: a command-line tool for faster protein and protein complex structure prediction
 
 
-[![Testing on Linux](https://github.com/chayan7/flashfold/actions/workflows/linux-python-package-conda.yml/badge.svg?event=push)](https://github.com/chayan7/flashfold/actions/workflows/linux-python-package-conda.yml)
+[![Testing on Linux](https://github.com/chayan7/flashfold/actions/workflows/testing-on-linux.yml/badge.svg?event=push)](https://github.com/chayan7/flashfold/actions/workflows/linux-python-package-conda.yml)
 
 ## Introduction
 
@@ -294,4 +294,10 @@ and packages:
 *   [tqdm](https://github.com/tqdm/tqdm)
 *   [ujson](https://github.com/ultrajson/ultrajson)
 
+## Citation
+
+If you use FlashFold in your research, please cite:
+
+- Saha, CK., Roghanian, M., Häussler, S., Guy, L. FlashFold: a standalone command-line tool for accelerated protein structure prediction.
+<br>bioRxiv. doi: https://doi.org/10.1101/2025.01.23.634437
 
