@@ -1,4 +1,4 @@
-name: Linux Python Package using Conda
+name: Testing on Linux
 
 on: [push]
 
