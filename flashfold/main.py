@@ -7,7 +7,7 @@ from flashfold.utils import is_zero_or_pos_int, is_pos_int
 def main() -> None:
     # Create the main parser
     parser = argparse.ArgumentParser(description='Predict protein structure from sequence.')
-    parser.add_argument("-v", "--version", action="version", version="∞∞ FlashFold v1.0.5 ∞∞")
+    parser.add_argument("-v", "--version", action="version", version="∞∞ FlashFold v1.0.6 ∞∞")
 
     # Create subparsers for different commands
     subparsers = parser.add_subparsers(dest='command', title='commands',

@@ -110,8 +110,6 @@ def test_monomer_msa():
          "-d", "test/output/custom_database/",
          "-o", "test/output/fold-monomer/",
          "-t", "1",
-         "--num_models", "1",
-         "--num_recycle", "1",
          "--only_msa"],
         capture_output=True,
         text=True
@@ -133,8 +131,6 @@ def test_multimer_msa():
          "-d", "test/output/custom_database/",
          "-o", "test/output/fold-heterodimer/",
          "-t", "1",
-         "--num_models", "1",
-         "--num_recycle", "1",
          "--only_msa"],
         capture_output=True,
         text=True
