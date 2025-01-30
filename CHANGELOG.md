@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.0.6] - 2025-01-30
+
+#### Added
+- NA
+
+#### Changed
+- Version number is updated.
+
+#### Fixed
+- Unnecessary database loading issue is fixed.
+
+#### Removed
+- NA
+
+
 ## [1.0.5] - 2025-01-26
 
 #### Added

@@ -127,26 +127,43 @@ def predict_3d_structure(args) -> None:
     valid_input_files = get_valid_input_files_with_type(query, is_batch)
     is_fasta = valid_input_files.file_ext == "fasta"
 
-    sequence_database = None
-    if is_fasta:
-        database_path = os.path.realpath(args.database)
+    if args.database and not is_fasta:
+        print(f"\n-- Warning: Database path is only required and used when the query file is in FASTA format.")
+        print(f"-- Tip: Skip using the database when query file is an MSA (.a3m).\n")
 
-        # Check if the database directory is valid
-        if not is_valid_database_dir(database_path):
-            sys.exit()
-
-        # Load sequence database
-        sequence_database = Database(database_path)
-
-    # Create a JsonStructure object to store the features of the input FASTA files
-    infile_features_json = JsonStructure()
-    # Create a JsonStructure object to store the features required for structure prediction
-    fold_features = JsonStructure()
+    if args.only_msa and not is_fasta:
+        print(f"\n-- Error: Provided input file type is already MSA and --only_msa is set true")
+        print(f"-- Tip: Either use FASTA file(s) as input or skip --only_msa for structure prediction :) ...\n")
+        sys.exit()
 
     # Create output directory
     out_dir_path = os.path.realpath(args.output)
     overwrite = args.overwrite_existing_results
     parent_result_path, temp_dir_path = get_results_and_temp_dirs(out_dir_path, overwrite, is_fasta)
+
+    # Load the database if needed
+    sequence_database = None
+    if is_fasta:
+        if not args.database:
+            print(f"\n-- Error: Database path is required when the query file is in FASTA format.\n")
+            shutil.rmtree(out_dir_path)
+            sys.exit()
+
+        database_path = os.path.realpath(args.database)
+
+        # Check if the database directory is valid
+        if not is_valid_database_dir(database_path):
+            shutil.rmtree(out_dir_path)
+            sys.exit()
+
+        # Load database
+        sequence_database = Database(database_path)
+
+    # Create a JsonStructure object to store the features of the input FASTA files
+    infile_features_json = JsonStructure()
+
+    # Create a JsonStructure object to store the features required for structure prediction
+    fold_features = JsonStructure()
 
     # Homology search Initialization
     query_hash_to_single_fasta_path = {}
@@ -256,11 +273,7 @@ def predict_3d_structure(args) -> None:
         # remove temp directory
         shutil.rmtree(temp_dir_path)
 
-    if args.only_msa:
-        if not is_fasta:
-            print(f"\n-- Nice! Provided input is MSA (.a3m) and --only_msa is set, so nothing to expect!")
-            print(f"-- Either use FASTA or skip --only_msa for some useful results :) ... \n")
-    else:
+    if not args.only_msa:
         # Run structure prediction
         for each_file in fold_features.get_data():
             each_file_fold_features = fold_features.get_data()[each_file]
