@@ -35,4 +35,4 @@ jobs:
       run: |
         source $(conda info --base)/etc/profile.d/conda.sh
         conda activate flashfold
-        pytest -k "not test_fold_batch"
+        pytest -k "not test_fold_batch and not test_summary_report"

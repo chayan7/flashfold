@@ -6,6 +6,8 @@ import sys
 from typing import List, Dict, Tuple, Literal
 from collections import defaultdict
 from collections import namedtuple
+
+
 from flashfold.utils import is_valid_protein_fasta, is_valid_database_dir, manage_output_path, \
     join_list_elements_by_character, create_new_directory, run_jackhmmer, \
     get_files_from_path_by_extension, run_colabfold, current_time, current_time_raw, update_time_log, \
@@ -140,6 +142,13 @@ def predict_3d_structure(args) -> None:
     out_dir_path = os.path.realpath(args.output)
     overwrite = args.overwrite_existing_results
     parent_result_path, temp_dir_path = get_results_and_temp_dirs(out_dir_path, overwrite, is_fasta)
+    
+    time_log_file = os.path.join(out_dir_path, "batch_timings.txt") if is_batch \
+        else os.path.join(parent_result_path, "timings.txt")
+    log_text = "-batch" if is_batch else ""
+    
+    initial_msg = f"-- FlashFold{log_text} analysis began at: {prediction_start_time}"
+    update_time_log(time_log_file, initial_msg, False)
 
     # Load the database if needed
     sequence_database = None
@@ -177,10 +186,6 @@ def predict_3d_structure(args) -> None:
         if is_batch:
             parent_result_path = manage_output_path(batch_out_dir_path, overwrite)
 
-        # Time_log
-        time_log_file = os.path.join(parent_result_path, "timings.txt")
-        initial_msg = f"-- FlashFold analysis began at: {prediction_start_time}"
-        update_time_log(time_log_file, initial_msg, False)
         infile_features_json.add_entry(valid_file, "temp", temp_dir_path)
 
         #structure prediction out path
@@ -223,6 +228,11 @@ def predict_3d_structure(args) -> None:
     if is_fasta:
         # Run Jackhmmer
         unique_fasta_file_paths = list(query_hash_to_single_fasta_path.values())
+
+        msa_start_log_text = f"Started Step 1: MSA construction for {len(valid_input_files.file_paths)} sequences" \
+            if is_batch else f"Started Step 1: MSA construction"
+
+        update_time_log(time_log_file, msa_start_log_text, True)
         run_jackhmmer(unique_fasta_file_paths, sequence_database.fasta_db, args.threads, temp_dir_path)
 
         # copy homology search output
@@ -245,7 +255,7 @@ def predict_3d_structure(args) -> None:
             is_monomer = each_fasta_features["is_monomer"]
 
             alignment_path = each_fasta_features["msa"]
-            parent_result_path = each_fasta_features["parent_result_path"]
+            result_subdirectory = each_fasta_features["parent_result_path"]
             query_fasta_features = each_fasta_features["features"]
             time_log_file = each_fasta_features["time_log"]
             homology_summary_json_file = os.path.join(alignment_path, "homology_summary.json")
@@ -255,14 +265,17 @@ def predict_3d_structure(args) -> None:
             # Make combined alignment file
             a3m_files = get_files_from_path_by_extension(alignment_path, ".a3m")
             a3m_records = get_query_to_a3m_records(a3m_files, query_fasta_features.chain_seq_hashes)
-            filtered_a3m_path = os.path.join(parent_result_path, "flashfold_filtered_msa")
+            filtered_a3m_path = os.path.join(result_subdirectory, "flashfold_filtered_msa")
             create_new_directory(filtered_a3m_path)
             create_a3m_for_folding(homology_summary_json_file, a3m_records, query_fasta_features, filtered_a3m_path)
-            update_time_log(time_log_file, "Completed Step 1: MSA construction", True)
-
             a3m_file_name = join_list_elements_by_character(query_fasta_features.accnrs, "-")
             filtered_homology_search_output = os.path.join(filtered_a3m_path, f"{a3m_file_name}.a3m")
-            structure_prediction_out_path = os.path.join(parent_result_path, "flashfold_structure")
+
+            msa_end_log_text = f"Completed Step 1: MSA construction for {os.path.basename(result_subdirectory)} " \
+                if is_batch else f"Completed Step 1: MSA construction"
+            update_time_log(time_log_file, msa_end_log_text, True)
+
+            structure_prediction_out_path = os.path.join(result_subdirectory, "flashfold_structure")
             fold_features.add_entry(each_fasta, "filtered_msa", filtered_homology_search_output)
             fold_features.add_entry(each_fasta, "structure_prediction_path", structure_prediction_out_path)
             fold_features.add_entry(each_fasta, "is_monomer", is_monomer)
@@ -283,14 +296,27 @@ def predict_3d_structure(args) -> None:
             prediction_out_path = each_file_fold_features["structure_prediction_path"]
             time_log_file = each_file_fold_features["time_log"]
             create_new_directory(prediction_out_path)
+
+            fold_log_extra = f" for {os.path.basename(os.path.dirname(prediction_out_path))}" if is_batch else ""
+
+            fold_start_log = f"Started Step 2: Structure prediction{fold_log_extra}"
+            update_time_log(time_log_file, fold_start_log, True)
             run_colabfold(is_monomer, filtered_a3m_file, prediction_out_path, args.num_models,
                           args.num_recycle, args.stop_at_score, args.num_structure_relax, args.relax_max_iterations)
-            update_time_log(time_log_file, "Completed Step 2: Structure prediction", True)
+
+            fold_end_log = f"Completed Step 2: Structure prediction{fold_log_extra}"
+            update_time_log(time_log_file, fold_end_log, True)
+
+            score_start_log = f"Started Step 3: Scoring{fold_log_extra}"
+            update_time_log(time_log_file, score_start_log, True)
             generate_score_matrix(prediction_out_path, args.cutoff, is_monomer)
-            update_time_log(time_log_file, "Completed Step 3: Scoring", True)
-            prediction_end_time = current_time_raw()
-            prediction_duration = prediction_end_time - prediction_start_time
-            prediction_duration_seconds = prediction_duration.total_seconds()
-            program_timing_msg = f"\n-- Total time in seconds: {prediction_duration_seconds}"
-            update_time_log(time_log_file, program_timing_msg, False)
+            score_end_log = f"Completed Step 3: Scoring{fold_log_extra}"
+            update_time_log(time_log_file, score_end_log, True)
+
+    if not is_batch:
+        prediction_end_time = current_time_raw()
+        prediction_duration = prediction_end_time - prediction_start_time
+        prediction_duration_seconds = prediction_duration.total_seconds()
+        program_timing_msg = f"\n-- Total time in seconds: {prediction_duration_seconds}"
+        update_time_log(time_log_file, program_timing_msg, False)
 

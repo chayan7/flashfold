@@ -204,7 +204,7 @@ def get_valid_sequence_records_from_fasta(fasta_file: str) -> List[Dict]:
         changed_accession = f"S{count}_{accession_without_bad_char}"
         record.id = changed_accession
         seq_hash = calculate_md5_hash("prot", str(sequence))
-        record_dict: dict[str, str] = {"accession": changed_accession,
+        record_dict: Dict[str, str] = {"accession": changed_accession,
                                        "sequence": sequence,
                                        "fasta": record.format("fasta"),
                                        "seq_hash": seq_hash}

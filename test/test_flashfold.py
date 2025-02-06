@@ -180,5 +180,19 @@ def test_fold_batch():
     assert float(h_score_min_pdockq2_column[1]) > 0, f"Error: {flashfold_sub}"
 
 
+def test_summary_report():
+    flashfold_sub = "summary"
+    result = subprocess.run(
+        ["flashfold", flashfold_sub,
+         "-d", "test/output/fold-batch/",
+         "-o", "test/output/fold-batch/"],
+        capture_output=True,
+        text=True
+    )
+    assert result.returncode == 0, f"{flashfold_sub} failed with error: {result.stderr}"
+    assert file_has_content("test/output/fold-batch/summary.html"), f"Error: {flashfold_sub}"
+    assert file_has_content("test/output/fold-batch/summary.csv"), f"Error: {flashfold_sub}"
+
+
 if __name__ == "__main__":
     pytest.main()

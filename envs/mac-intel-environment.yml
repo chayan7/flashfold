@@ -11,6 +11,7 @@ dependencies:
   - perl
   - ncbi-datasets-cli
   - hmmer
+  - dm-tree
   - pip
   - pip:
       - colabfold[alphafold] @ git+https://github.com/sokrypton/ColabFold
@@ -27,3 +28,4 @@ dependencies:
       - numpy~=1.26.4
       - requests~=2.32.3
       - tqdm~=4.66.5
+      - py3Dmol

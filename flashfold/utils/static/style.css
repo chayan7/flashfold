@@ -1,0 +1,111 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+
+.header-text {
+    color: black;
+    font-family: Arial, sans-serif;
+    font-size: 24px;
+    background-color: #dddddddd;
+    text-align: center;
+    padding: 12px;
+}
+
+
+.entries-info {
+    font-family: Arial, sans-serif;
+    margin-bottom: 10px;
+}
+
+
+.flex-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+
+.sort-buttons {
+    display: inline-block;
+    margin-left: 5px;
+}
+
+
+.sort-buttons button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+    margin: 0;
+}
+
+
+th, td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+}
+
+
+th {
+    cursor: pointer;
+    background-color: #f2f2f2;
+}
+
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+
+tr:hover {
+    background-color: #f1f1f1;
+}
+
+
+#searchInput {
+    margin-bottom: 20px;
+    margin-right: 10px;
+    padding: 10px;
+    width: 20%;
+    box-sizing: border-box;
+    float: right;
+    color: #431212;
+}
+
+
+#pagination a {
+    align-content: flex-start;
+    margin: 0 5px;
+    padding: 5px 10px;
+    text-decoration: none;
+    border: 1px solid #cfcece;
+    color: black;
+}
+
+#pagination a.active {
+    background-color: grey;
+    color: white;
+    border: 1px solid black;
+}
+
+#pagination a.disabled {
+    color: #ccd3d9;
+    cursor: not-allowed;
+}
+
+#pagination span {
+    margin: 0 5px;
+    padding: 5px 10px;
+    color: #6c757d;
+}
