@@ -52,8 +52,12 @@ def run_jobs_in_parallel(thread_count: int, threads_per_job: int,  jobs: List, j
     """
     stopped = threading.Event()
     q = Queue()
-    if job_name != "":
-        print(f'\n-- {current_time()} > {job_name} is being processed with {thread_count} thread limit')
+
+    if job_name.strip() == "":
+        print("-- Error: No job name found for run_jobs_in_parallel.")
+        sys.exit()
+
+    print(f'\n-- {current_time()} > {job_name} is being processed with {thread_count} thread limit')
 
     for command in jobs:
         q.put(command)
@@ -74,8 +78,8 @@ def run_jobs_in_parallel(thread_count: int, threads_per_job: int,  jobs: List, j
     # Ensure all threads have finished
     for t in threads:
         t.join()
-    if job_name != "":
-        print(f'-- {current_time()} > {job_name} has been completed \n')
+
+    print(f'-- {current_time()} > {job_name} has been completed \n')
 
 
 def run_single_job(job: str, job_name: str) -> None:

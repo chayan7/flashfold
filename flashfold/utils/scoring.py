@@ -1,4 +1,4 @@
-# Code is collected from: https://gitlab.com/ElofssonLab/huintaf2/-/blob/main/bin/pDockQ2.py
+# pDockQ2 Code is collected from: https://gitlab.com/ElofssonLab/huintaf2/-/blob/main/bin/pDockQ2.py
 # And changed accordingly to fit the current project.
 
 import os
@@ -49,26 +49,6 @@ def extract_ptm(log_line: str) -> Optional[float]:
     match = re.search(pattern, log_line)
     if match:
         return float(match.group(1))
-    else:
-        return None
-
-
-def extract_plddt_ptm(log_line: str) -> Optional[Tuple[str, float, float]]:
-    """
-    Extracts the name, pLDDT, and pTM values from a log line.
-
-    :param log_line: A string containing the log line.
-    :return: A tuple containing the name, pLDDT, and pTM values if found, otherwise None.
-    """
-    if "rank_" not in log_line:
-        return None
-
-    split_line = log_line.rstrip().split()
-    name = split_line[2]
-    plddt = extract_plddt(log_line)
-    ptm = extract_ptm(log_line)
-    if plddt and ptm:
-        return name, plddt, ptm
     else:
         return None
 
@@ -226,18 +206,31 @@ def generate_score_matrix(path_to_predicted_structure: str, cutoff: Optional[flo
             print(f"\n-- Warning: Cutoff {cutoff} is not applicable for monomers, "
                   f"but will be used for pDockQ2 scoring for multimers (if provided any).\n")
             pass
-        log_file = os.path.join(path_to_predicted_structure, "log.txt")
-        with open(log_file, "r") as log_in, open(score_matrix_filepath, "w") as score_out:
-            # noinspection PyTypeChecker
-            print("name", "pLDDT", "pTM", sep="\t", file=score_out)
-            for line in log_in:
-                scores = extract_plddt_ptm(line)
-                if scores:
-                    name, plddt, ptm = scores
-                    # noinspection PyTypeChecker
-                    print(name, plddt, ptm, sep="\t", file=score_out)
-                else:
-                    pass
+
+        all_files = os.listdir(path_to_predicted_structure)
+        pdb_files = [f for f in all_files if f.endswith(".pdb") and "unrelaxed" in f]
+        names = []
+        plddt_score = []
+        ptm = []
+
+        for predicted_pdb in pdb_files:
+            pdb_file = predicted_pdb.split("/")[-1]
+            if 'rank' not in pdb_file:
+                print(f"Skipping {pdb_file} as it does not contain 'rank' in the file name.")
+                return
+
+            json_file_name = predicted_pdb.replace(".pdb", ".json").replace("unrelaxed", "scores")
+            json_file_path = os.path.join(path_to_predicted_structure, json_file_name)
+            names.append(predicted_pdb)
+            json_file = load_json_file(json_file_path)
+            ptm.append(json_file['ptm'])
+            mean_plddt = np.mean(json_file["plddt"])
+            plddt_score.append(mean_plddt)
+
+        score_dict = {'name': names, 'pLDDT': plddt_score, 'pTM': ptm}
+        collect_data = pd.DataFrame(score_dict)
+        sorted_collected_data = collect_data.sort_values(by='name')
+        sorted_collected_data.to_csv(score_matrix_filepath, sep='\t', index=False)
         return None
 
     if not is_monomer:
@@ -250,6 +243,7 @@ def generate_score_matrix(path_to_predicted_structure: str, cutoff: Optional[flo
         min_pdockq_scores = []
         all_pdockq2 = []
         iptm = []
+        ptm = []
         iptm_ptm = []
         plddt_score = []
         for predicted_pdb in pdb_files:
@@ -265,6 +259,7 @@ def generate_score_matrix(path_to_predicted_structure: str, cutoff: Optional[flo
 
             iptm_score = json_file['iptm']
             iptm.append(iptm_score)
+            ptm.append(json_file['ptm'])
             iptm_ptm_score = 0.8 * json_file["iptm"] + 0.2 * json_file["ptm"]
             iptm_ptm.append(iptm_ptm_score)
 
@@ -296,8 +291,9 @@ def generate_score_matrix(path_to_predicted_structure: str, cutoff: Optional[flo
 
             all_pdockq2.append(pdockq_scores_per_model)
 
-        score_dict = {'name': names, 'mean_pDockQ2': mean_pdockq_scores, 'min_pDockQ2': min_pdockq_scores,
-                      'ipTM': iptm, 'ipTM+pTM': iptm_ptm, 'mplDDT': plddt_score, 'pDockQ2_per_chain': all_pdockq2}
+        score_dict = {'name': names, 'pLDDT': plddt_score, 'pTM': ptm, 'ipTM': iptm, 'ipTM+pTM': iptm_ptm,
+                      'min_pDockQ2': min_pdockq_scores, 'mean_pDockQ2': mean_pdockq_scores,
+                      'pDockQ2_per_chain': all_pdockq2}
         collect_data = pd.DataFrame(score_dict)
         sorted_collected_data = collect_data.sort_values(by='name')
         sorted_collected_data.to_csv(score_matrix_filepath, sep='\t', index=False)

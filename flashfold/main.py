@@ -1,13 +1,13 @@
 import argparse
 from flashfold.scripts import create_protein_db_from_gbk, download_database_from_cloud, predict_3d_structure, \
-    extend_main_sequence_db, download_ncbi_data, parse_formats
+    extend_main_sequence_db, download_ncbi_data, parse_formats, make_summary_report
 from flashfold.utils import is_zero_or_pos_int, is_pos_int
 
 
 def main() -> None:
     # Create the main parser
     parser = argparse.ArgumentParser(description='Predict protein structure from sequence.')
-    parser.add_argument("-v", "--version", action="version", version="∞∞ FlashFold v1.0.6 ∞∞")
+    parser.add_argument("-v", "--version", action="version", version="∞∞ FlashFold v1.0.7 ∞∞")
 
     # Create subparsers for different commands
     subparsers = parser.add_subparsers(dest='command', title='commands',
@@ -124,6 +124,26 @@ def main() -> None:
                       help="Cutoff to define distances used for pDockQ2 score calculation of protein complex. "
                            "(default: 10.0)")
 
+    # command summary parser
+    desc_summary = ''' Generates an interactive HTML report and a CSV file from FlashFold output. '''
+    summary = subparsers.add_parser('summary', description=desc_summary)
+    summary.add_argument("-d", "--directory", metavar="<File_Dir>", type=str, required=True,
+                         help="path to FlashFold output directory")
+    summary.add_argument('-fl', '--filter_by_plddt', metavar="<Float>", type=float,
+                         help="Filter output by pLDDT score.")
+    summary.add_argument('-fi', '--filter_by_iptm', metavar="<Float>", type=float,
+                         help="Filter output by ipTM score.")
+    summary.add_argument('-fp', '--filter_by_ptm', metavar="<Float>", type=float,
+                         help="Filter output by pTM score.")
+    summary.add_argument('-fip', '--filter_by_iptm_plus_ptm', metavar="<Float>", type=float,
+                         help="Filter output by ipTM+pTM score.")
+    summary.add_argument('-fmd', '--filter_by_min_pdockq2', metavar="<Float>", type=float,
+                         help="Filter output by minimum pDockQ2 score.")
+    summary.add_argument('-fad', '--filter_by_avg_pdockq2', metavar="<Float>", type=float,
+                         help="Filter output by average pDockQ2 score.")
+    summary.add_argument('-o', '--output', metavar="<File_Dir>", type=str, required=True,
+                         help="Path to the summary output directory.")
+
     # Parse the arguments
     args = parser.parse_args()
 
@@ -138,6 +158,8 @@ def main() -> None:
             download_ncbi_data(args)
         case "fold":
             predict_3d_structure(args)
+        case "summary":
+            make_summary_report(args)
         case _:
             parser.print_help()
 

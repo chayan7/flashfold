@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.0.7] - 2025-02-07
+
+#### Added
+- Functionality for generating an interactive html report.
+
+#### Changed
+- Version number is updated.
+- Headers of the score.tsv file are updated.
+- README.md file is updated with application of the `summary` subcommand.
+
+#### Fixed
+- Scoring table for the monomers.
+- Time record log for batch processing.
+
+#### Removed
+- NA
+
+
 ## [1.0.6] - 2025-01-30
 
 #### Added
