@@ -6,6 +6,11 @@ from .sequence import Sequence, Infile_feats, get_alignment_records_from_a3m_fil
     combine_gappy_sequences, make_hash_fasta_sequence
 from .json import load_json_file
 from .execute import run_jobs_in_parallel
+from collections import namedtuple
+
+
+A3M_Records = namedtuple("A3M_records", ["query_hash_to_seq", "hits_per_query"])
+hits_allowed_without_inspection = 10000
 
 
 def run_jackhmmer(fasta_files: list, database_fasta: str, provided_cpu: int, out_path: str) -> None:
@@ -53,16 +58,79 @@ def has_good_coverage(sequence: str, coverage: float = 0.5) -> bool:
     Returns:
         bool: True if the sequence has good coverage, False otherwise.
     """
-    sequence_length = len(sequence)
-    coverage_threshold = sequence_length * coverage
+    sequence_length_with_gaps = len(sequence)
+    desired_sequence_length_without_gaps = sequence_length_with_gaps * coverage
     gap_count = sequence.count("-")
-    if gap_count < coverage_threshold:
+    sequence_length_without_gaps = sequence_length_with_gaps - gap_count
+    if sequence_length_without_gaps >= desired_sequence_length_without_gaps:
         return True
     else:
         return False
 
 
-def get_query_to_a3m_records(a3m_files: List[str], query_hashes: List[str]) -> Dict[str, str]:
+def drop_homomer_hit(fasta_seq: str, hits_per_query: List[int]) -> bool:
+    """
+    Drop homomer hits.
+
+    Args:
+        fasta_seq (str): The FASTA sequence.
+        hits_per_query (List[int]): List of hits per query.
+
+    Returns:
+        bool: True if the homomer hit need to be dropped, False otherwise.
+    """
+
+    hits_for_current_query_index = hits_per_query[0] # For monomer or homomer it is always the first index
+
+    if hits_for_current_query_index < hits_allowed_without_inspection:
+        return False
+
+    sequence = fasta_seq.rstrip().split("\n")[1]
+    if sequence == "":
+        return True
+
+    if has_good_coverage(sequence):
+        return False
+    else:
+        return True
+
+
+def drop_heteromer_unpaired_hit(unpaired_fasta_with_gap_seq: str, index_in_unpaired: int, hits_per_query: List[int]) -> bool:
+    """
+    Drop unpaired hits.
+
+    Args:
+        unpaired_fasta_with_gap_seq (str): The unpaired FASTA with gap sequences.
+        index_in_unpaired (int): The index in unpaired to inspect.
+        hits_per_query (List[int]): List of hits per query.
+
+    Returns:
+        bool: True if the unpaired hit need to be dropped, False otherwise.
+    """
+    
+
+    hits_for_current_query_index = hits_per_query[index_in_unpaired]
+
+    if hits_for_current_query_index < hits_allowed_without_inspection:
+        return False
+
+    null_character = chr(0)
+    sequence = unpaired_fasta_with_gap_seq.rstrip().split("\n")[1]
+
+    if sequence == "":
+        return True
+
+    if null_character not in sequence:
+        return True
+
+    sequence_of_interest = sequence.split(null_character)[index_in_unpaired]
+    if has_good_coverage(sequence_of_interest):
+        return False
+    else:
+        return True
+
+
+def get_query_to_a3m_records(a3m_files: List[str], query_hashes: List[str]) -> A3M_Records:
     """
     Get query to A3M records.
 
@@ -71,10 +139,12 @@ def get_query_to_a3m_records(a3m_files: List[str], query_hashes: List[str]) -> D
         query_hashes (List[str]): List of query hashes.
 
     Returns:
-        Dict[str, str]: Dictionary mapping query hash and hit accession to A3M records.
+        A3M_Records: A named tuple of query hash to sequence and hits per query.
     """
     query_hash_colon_hit_to_a3m = {}
+    hit_count_per_query = []
     for query_hash in query_hashes:
+        count = -1  # Because the first hit is the query itself
         for a3m_file in a3m_files:
             a3m_file_without_extension = get_filename_without_extension(a3m_file)
             a3m_query_hash = a3m_file_without_extension.split("_", 1)[0]
@@ -83,18 +153,21 @@ def get_query_to_a3m_records(a3m_files: List[str], query_hashes: List[str]) -> D
                 for hit_accession in a3m_records:
                     query_hash_colon_hit_accession = f"{query_hash}:{hit_accession}"
                     query_hash_colon_hit_to_a3m[query_hash_colon_hit_accession] = a3m_records[hit_accession]
-    return query_hash_colon_hit_to_a3m
+                    count += 1
+        hit_count_per_query.append(count)
+
+    return A3M_Records(query_hash_to_seq=query_hash_colon_hit_to_a3m, hits_per_query=hit_count_per_query)
 
 
 def make_alignment_pair(query_colon_hits: List[str], input_query_feats: Infile_feats,
-                        a3m_records: Dict[str, str]) -> List[Sequence]:
+                        a3m_seq_records: Dict[str, str]) -> List[Sequence]:
     """
     Create alignment pairs from query hits and input query features.
 
     Args:
         query_colon_hits (List[str]): List of query hits in the format 'query:hit'.
         input_query_feats (Infile_feats): Input query features.
-        a3m_records (Dict[str, str]): Dictionary of A3M records.
+        a3m_seq_records (Dict[str, str]): Dictionary of A3M records.
 
     Returns:
         List[Sequence]: A list of paired sequences
@@ -134,7 +207,7 @@ def make_alignment_pair(query_colon_hits: List[str], input_query_feats: Infile_f
                     seq_combo[hit_index] = created_sequence
                 else:
                     hit_accession = subunit_based_hit.split(":", 1)[1]
-                    sequence = a3m_records[subunit_based_hit]
+                    sequence = a3m_seq_records[subunit_based_hit]
                     if has_good_coverage(sequence):
                         accession_combo[hit_index] = hit_accession
                         seq_combo[hit_index] = sequence
@@ -175,14 +248,14 @@ def introduce_gap_in_subunit(subunit_seq: List[str]) -> List[List[str]]:
     return combinations
 
 
-def create_a3m_for_folding(summary_json: str, a3m_records: Dict[str, str],
+def create_a3m_for_folding(summary_json: str, a3m_records: A3M_Records,
                            query_fasta: Infile_feats, out_path: str) -> None:
     """
     Create A3M files for folding.
 
     Args:
         summary_json (str): Path to the summary JSON file.
-        a3m_records (Dict[str, str]): Dictionary of A3M records.
+        a3m_records (A3M_Records): A named tuple of query hash to sequence and hits per query.
         query_fasta (Infile_feats): Input query features.
         out_path (str): Output directory path.
 
@@ -190,6 +263,8 @@ def create_a3m_for_folding(summary_json: str, a3m_records: Dict[str, str],
         None
     """
     chain_subunit_accessions = query_fasta.chain_accnrs
+    hits_per_query = a3m_records.hits_per_query
+    a3m_sequence_records = a3m_records.query_hash_to_seq
 
     chain_subunit_mod_accessions = []
     for i in range(len(chain_subunit_accessions)):
@@ -212,11 +287,10 @@ def create_a3m_for_folding(summary_json: str, a3m_records: Dict[str, str],
     is_query_a_hetero_complex = len(query_fasta.chain_seq_hashes) > 1
 
     gappy_seq_dict = {}
-
     if is_query_a_hetero_complex:
         for gbk in gbk_to_query_colon_hits:
             query_colon_hits = gbk_to_query_colon_hits[gbk]
-            paired_alignment_lists = make_alignment_pair(query_colon_hits, query_fasta, a3m_records)
+            paired_alignment_lists = make_alignment_pair(query_colon_hits, query_fasta, a3m_sequence_records)
             for a3m_alignment in paired_alignment_lists:
                 if a3m_alignment.hash not in a3m_alignment_hashes:
                     a3m_alignments.append(a3m_alignment.fasta)
@@ -230,26 +304,30 @@ def create_a3m_for_folding(summary_json: str, a3m_records: Dict[str, str],
 
         for j in range(len(chain_seq_hashes)):
             empty_chain_subunit_seq_list = query_fasta.empty_subunits.copy()
-            for query_hash_colon_hit in a3m_records:
+            for query_hash_colon_hit in a3m_sequence_records:
                 query_hash_value, hit_accession = query_hash_colon_hit.split(":", 1)
                 if query_hash_value == chain_seq_hashes[j]:
-                    empty_chain_subunit_seq_list[j] = a3m_records[query_hash_colon_hit]
+                    empty_chain_subunit_seq_list[j] = a3m_sequence_records[query_hash_colon_hit]
                     combo_unpaired = combine_sequences([hit_accession], empty_chain_subunit_seq_list)
                     if gappy_seq_dict[j].hash not in a3m_alignment_hashes:
                         a3m_alignments.append(gappy_seq_dict[j].fasta)
+                        #unpaired_alignment.append(gappy_seq_dict[j].fasta)
                         a3m_alignment_hashes.add(gappy_seq_dict[j].hash)
                     if combo_unpaired.hash not in a3m_alignment_hashes:
-                        a3m_alignments.append(combo_unpaired.fasta)
-                        a3m_alignment_hashes.add(combo_unpaired.hash)
+                        if not drop_heteromer_unpaired_hit(combo_unpaired.fasta, j, hits_per_query):
+                            a3m_alignments.append(combo_unpaired.fasta)
+                            a3m_alignment_hashes.add(combo_unpaired.hash)
+
     else:
-        for query_hash_colon_hit in a3m_records:
+        for query_hash_colon_hit in a3m_sequence_records:
             query_hash_value, hit_accession = query_hash_colon_hit.split(":", 1)
             if query_hash_value == chain_seq_hashes[0]:
-                sequence = a3m_records[query_hash_colon_hit]
+                sequence = a3m_sequence_records[query_hash_colon_hit]
                 fasta_sequence = make_hash_fasta_sequence(hit_accession, sequence)
                 if fasta_sequence.hash not in a3m_alignment_hashes:
-                    a3m_alignments.append(fasta_sequence.fasta)
-                    a3m_alignment_hashes.add(fasta_sequence.hash)
+                    if not drop_homomer_hit(fasta_sequence.fasta, hits_per_query):
+                        a3m_alignments.append(fasta_sequence.fasta)
+                        a3m_alignment_hashes.add(fasta_sequence.hash)
 
     concatenated_filename = join_list_elements_by_character(query_fasta.accnrs, "-")
     concat_filepath = os.path.join(out_path, f"{concatenated_filename}.a3m")
