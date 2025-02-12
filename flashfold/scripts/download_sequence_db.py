@@ -22,8 +22,8 @@ def download_database_from_cloud(args) -> None:
     for db_name in database_dict:
         print(f"-- Downloading {db_name} ...")
         database_link = database_dict[db_name]
-        wget_file_from_url(database_link, output_path)
-        zip_file = f"{output_path}/{db_name}.zip"
+        zip_file = wget_file_from_url(database_link, output_path)
+        print(f"-- Download complete for {zip_file}")
         if os.path.exists(f"{output_path}/{db_name}"):
             pass
         else:

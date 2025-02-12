@@ -280,9 +280,8 @@ def download_ncbi_data(args) -> None:
         query = args.reference
         # RefSeq file to be downloaded
         refseq_url = f"https://ftp.ncbi.nlm.nih.gov/genomes/refseq/{query}/assembly_summary.txt"
-        refseq_file = os.path.join(temp_dir, "assembly_summary.txt")
         print(f"\nDownloading data from RefSeq database ... \n")
-        wget_file_from_url(refseq_url, temp_dir)
+        refseq_file = wget_file_from_url(refseq_url, temp_dir)
         if os.path.isfile(refseq_file):
             with open(refseq_file, 'r') as refseq_in:
                 for line in refseq_in:
