@@ -3,14 +3,14 @@
 All notable changes to this project will be documented in this file.
 
 
-## [1.0.8] - 2025-02-10
+## [1.0.8] - 2025-02-12
 
 #### Added
 - Filtering when hits are too many.
 
 #### Changed
 - Version number is updated.
-- MSA construction is updated.
+- MSA construction is updated for both monomer and multimer prediction.
 
 #### Fixed
 - A3M file size issue is fixed for complex prediction.
