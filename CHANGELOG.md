@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file.
 
 #### Fixed
 - A3M file size issue is fixed for complex prediction.
+- Issue with downloading the database.
+- Issue with the html table sorting in the table.
 
 #### Removed
 - NA
