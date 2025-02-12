@@ -68,34 +68,40 @@ def has_good_coverage(sequence: str, coverage: float = 0.5) -> bool:
         return False
 
 
-def drop_homomer_hit(fasta_seq: str, hits_per_query: List[int]) -> bool:
+def drop_homomer_hit(fasta_seq: str, hits_per_query: List[int], total_included_hit: int) -> bool:
     """
     Drop homomer hits.
 
     Args:
         fasta_seq (str): The FASTA sequence.
         hits_per_query (List[int]): List of hits per query.
+        total_included_hit (int): The total number of included hits.
 
     Returns:
         bool: True if the homomer hit need to be dropped, False otherwise.
     """
 
-    hits_for_current_query_index = hits_per_query[0] # For monomer or homomer it is always the first index
+    hits_for_current_query_index = hits_per_query[0]  # For monomer or homomer it is always the first index
 
     if hits_for_current_query_index < hits_allowed_without_inspection:
         return False
 
-    sequence = fasta_seq.rstrip().split("\n")[1]
-    if sequence == "":
-        return True
+    if total_included_hit > hits_allowed_without_inspection:
 
-    if has_good_coverage(sequence):
-        return False
-    else:
-        return True
+        sequence = fasta_seq.rstrip().split("\n")[1]
+        if sequence == "":
+            return True
+
+        if has_good_coverage(sequence):
+            return False
+        else:
+            return True
+
+    return False
 
 
-def drop_heteromer_unpaired_hit(unpaired_fasta_with_gap_seq: str, index_in_unpaired: int, hits_per_query: List[int]) -> bool:
+def drop_heteromer_unpaired_hit(unpaired_fasta_with_gap_seq: str, index_in_unpaired: int, hits_per_query: List[int],
+                                total_included_hit: int) -> bool:
     """
     Drop unpaired hits.
 
@@ -103,31 +109,36 @@ def drop_heteromer_unpaired_hit(unpaired_fasta_with_gap_seq: str, index_in_unpai
         unpaired_fasta_with_gap_seq (str): The unpaired FASTA with gap sequences.
         index_in_unpaired (int): The index in unpaired to inspect.
         hits_per_query (List[int]): List of hits per query.
+        total_included_hit (int): The total number of included hits.
 
     Returns:
         bool: True if the unpaired hit need to be dropped, False otherwise.
     """
-    
 
     hits_for_current_query_index = hits_per_query[index_in_unpaired]
 
     if hits_for_current_query_index < hits_allowed_without_inspection:
         return False
 
-    null_character = chr(0)
-    sequence = unpaired_fasta_with_gap_seq.rstrip().split("\n")[1]
+    if total_included_hit > hits_allowed_without_inspection:
 
-    if sequence == "":
-        return True
+        null_character = chr(0)
+        sequence = unpaired_fasta_with_gap_seq.rstrip().split("\n")[1]
 
-    if null_character not in sequence:
-        return True
+        if sequence == "":
+            return True
 
-    sequence_of_interest = sequence.split(null_character)[index_in_unpaired]
-    if has_good_coverage(sequence_of_interest):
-        return False
-    else:
-        return True
+        if null_character not in sequence:
+            return True
+
+        sequence_of_interest = sequence.split(null_character)[index_in_unpaired]
+
+        if has_good_coverage(sequence_of_interest):
+            return False
+        else:
+            return True
+
+    return False
 
 
 def get_query_to_a3m_records(a3m_files: List[str], query_hashes: List[str]) -> A3M_Records:
@@ -303,6 +314,7 @@ def create_a3m_for_folding(summary_json: str, a3m_records: A3M_Records,
             g += 1
 
         for j in range(len(chain_seq_hashes)):
+            a3m_unpaired_alignment_hashes = set()
             empty_chain_subunit_seq_list = query_fasta.empty_subunits.copy()
             for query_hash_colon_hit in a3m_sequence_records:
                 query_hash_value, hit_accession = query_hash_colon_hit.split(":", 1)
@@ -311,12 +323,13 @@ def create_a3m_for_folding(summary_json: str, a3m_records: A3M_Records,
                     combo_unpaired = combine_sequences([hit_accession], empty_chain_subunit_seq_list)
                     if gappy_seq_dict[j].hash not in a3m_alignment_hashes:
                         a3m_alignments.append(gappy_seq_dict[j].fasta)
-                        #unpaired_alignment.append(gappy_seq_dict[j].fasta)
                         a3m_alignment_hashes.add(gappy_seq_dict[j].hash)
                     if combo_unpaired.hash not in a3m_alignment_hashes:
-                        if not drop_heteromer_unpaired_hit(combo_unpaired.fasta, j, hits_per_query):
+                        if not drop_heteromer_unpaired_hit(combo_unpaired.fasta, j, hits_per_query,
+                                                           len(a3m_unpaired_alignment_hashes)):
                             a3m_alignments.append(combo_unpaired.fasta)
                             a3m_alignment_hashes.add(combo_unpaired.hash)
+                            a3m_unpaired_alignment_hashes.add(combo_unpaired.hash)
 
     else:
         for query_hash_colon_hit in a3m_sequence_records:
@@ -325,7 +338,7 @@ def create_a3m_for_folding(summary_json: str, a3m_records: A3M_Records,
                 sequence = a3m_sequence_records[query_hash_colon_hit]
                 fasta_sequence = make_hash_fasta_sequence(hit_accession, sequence)
                 if fasta_sequence.hash not in a3m_alignment_hashes:
-                    if not drop_homomer_hit(fasta_sequence.fasta, hits_per_query):
+                    if not drop_homomer_hit(fasta_sequence.fasta, hits_per_query, len(a3m_alignment_hashes)):
                         a3m_alignments.append(fasta_sequence.fasta)
                         a3m_alignment_hashes.add(fasta_sequence.hash)
 

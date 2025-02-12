@@ -1,4 +1,7 @@
 import wget
+import sys
+import shutil
+
 
 def wget_file_from_url(url: str, out_dir: str) -> str:
     """
@@ -24,7 +27,11 @@ def wget_file_from_url(url: str, out_dir: str) -> str:
         return file_path
     except OSError as e:  # Handle any OS-related errors (e.g., file write issues)
         print(f"\nError downloading file: {e}")
+        shutil.rmtree(out_dir)
+        sys.exit()
     except Exception as e:  # Handle any other general errors like connection issues
         print(f"\nAn unexpected error occurred: {e}")
+        shutil.rmtree(out_dir)
+        sys.exit()
 
 
