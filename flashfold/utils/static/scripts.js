@@ -1,5 +1,5 @@
 /**
- * Author: 	Chayan Kumar Saha
+ * Author:  Chayan Kumar Saha
  */
 
 /**
@@ -19,14 +19,28 @@ function sortTable(n) {
             x = rows[i].getElementsByTagName("TD")[n];
             y = rows[i + 1].getElementsByTagName("TD")[n];
             if (dir === "asc") {
-                if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-                    shouldSwitch = true;
-                    break;
+                if (!isNaN(parseFloat(x.innerHTML)) && !isNaN(parseFloat(y.innerHTML))) {
+                    if (dir === "asc" ? parseFloat(x.innerHTML) > parseFloat(y.innerHTML) : parseFloat(x.innerHTML) < parseFloat(y.innerHTML)) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                } else {
+                    if (dir === "asc" ? x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase() : x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
                 }
             } else if (dir === "desc") {
-                if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-                    shouldSwitch = true;
-                    break;
+                if (!isNaN(parseFloat(x.innerHTML)) && !isNaN(parseFloat(y.innerHTML))) {
+                    if (parseFloat(x.innerHTML) < parseFloat(y.innerHTML)) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                } else {
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
                 }
             }
         }

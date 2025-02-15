@@ -4,7 +4,7 @@ import shutil
 import subprocess
 from flashfold.utils import (is_installed, get_contents_by_column, file_has_content,
                              load_json_file, get_sum_of_all_file_sizes_by_path, is_valid_protein_a3m,
-                             is_valid_protein_fasta)
+                             is_valid_protein_fasta, is_valid_path)
 
 # List of dependencies
 dependencies = ["datasets", "jackhmmer", "perl", "colabfold_batch"]
@@ -98,6 +98,23 @@ def test_extend_db():
     assert database_ext_with_new_db_size > 0, f"Error: {flashfold_sub}"
     assert database_ext_with_gbff_size > 0, f"Error: {flashfold_sub}"
     assert set(custom_json.keys()) == set(test_json.keys()), f"Error: {flashfold_sub}"
+
+
+# Checking with DNA monomer sequence
+def test_monomer_dna():
+    flashfold_sub = "fold"
+    # testing fold for DNA monomer
+    result = subprocess.run(
+        ["flashfold", flashfold_sub,
+         "-q", "test/input/fasta/monomer_dna.fasta",
+         "-d", "test/output/custom_database/",
+         "-o", "test/output/fold-monomer-dna/",
+         "-t", "1"],
+        capture_output=True,
+        text=True
+    )
+    assert result.returncode == 0, f"{flashfold_sub} failed with error: {result.stderr}"
+    assert not is_valid_path("test/output/fold-monomer-dna/"), f"Error: {flashfold_sub} with DNA monomer"
 
 
 # Checking if 'fold' subcommand is working

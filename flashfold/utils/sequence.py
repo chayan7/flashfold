@@ -84,7 +84,15 @@ def is_protein_sequence(sequence: str, is_seq_from_msa: bool = False) -> bool:
 
     sequence = sequence.upper()  # Convert sequence to uppercase
 
-    for char in sequence:
+    # Remove the DNA/RNA characters from the sequence
+    dna_rna_chars = set("ATGCU")
+    sequence_without_dna_rna_char = "".join([char for char in sequence if char not in dna_rna_chars])
+
+    if sequence_without_dna_rna_char == "":
+        print("Invalid sequence: input sequence is either DNA or RNA.")
+        return False
+
+    for char in sequence_without_dna_rna_char:
         if char not in valid_amino_acids:
             print(f"Invalid character found in sequence: {char}")
 
