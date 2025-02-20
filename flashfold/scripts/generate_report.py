@@ -18,9 +18,10 @@ ipTM_plus_pTM_index = 6
 min_pDockQ2_index = 7
 mean_pDockQ2_index = 8
 model_index = 9
-result_path_index = 10
+relaxed_model_index = 10
+result_path_index = 11
 
-summary_table_headers = [''] * 11
+summary_table_headers = [''] * 12
 summary_table_headers[query_index] = 'Query'
 summary_table_headers[length_index] = 'Length'
 summary_table_headers[stoichiometry_index] = 'Stoichiometry'
@@ -31,6 +32,7 @@ summary_table_headers[ipTM_plus_pTM_index] = 'ipTM+pTM'
 summary_table_headers[min_pDockQ2_index] = 'min_pDockQ2'
 summary_table_headers[mean_pDockQ2_index] = 'mean_pDockQ2'
 summary_table_headers[model_index] = 'Predicted model'
+summary_table_headers[relaxed_model_index] = 'Predicted model (relaxed)'
 summary_table_headers[result_path_index] = 'Path to result'
 
 row_per_page_options = [1, 5, 10, 25, 50]
@@ -91,7 +93,10 @@ def get_length_stoichiometry_from_a3m(file_path: str) -> Tuple[str, str]:
     return length, stoichiometry
 
 
-def generate_3dmol_html(pdb_path: str) -> None:
+def generate_3dmol_html(pdb_path: str) -> str:
+    if not is_valid_path(pdb_path):
+        return 'n/a'
+    
     with open(pdb_path, 'r') as f:
         pdb_data = f.read()
 
@@ -103,7 +108,7 @@ def generate_3dmol_html(pdb_path: str) -> None:
     with open(pdb_html_path, 'w') as pdb_html:
         # noinspection PyProtectedMember
         pdb_html.write(viewer._make_html())
-    return None
+    return pdb_html_path
 
 
 def get_summary_table_rows_from_result_path(path_to_results: str) -> List[List[str]]:
@@ -117,6 +122,7 @@ def get_summary_table_rows_from_result_path(path_to_results: str) -> List[List[s
                 tsv_file_path = os.path.join(root, file)
                 best_score_from_tsv = get_best_score_from_tsv(tsv_file_path)
                 model_name = best_score_from_tsv['name']
+                relaxed_model_name = model_name.replace('_unrelaxed_', '_relaxed_')
                 query_id = model_name.split('_unrelaxed_rank_001_')[0]
                 a3m_file = os.path.join(root, f"{query_id}.a3m")
                 q_length, q_stoichiometry = get_length_stoichiometry_from_a3m(a3m_file)
@@ -126,8 +132,9 @@ def get_summary_table_rows_from_result_path(path_to_results: str) -> List[List[s
                 row[length_index] = q_length
                 row[stoichiometry_index] = q_stoichiometry
                 model_path = os.path.join(root, model_name)
-                generate_3dmol_html(model_path)
-                row[model_index] = os.path.join(root, model_name.replace('.pdb', '.html'))
+                relaxed_model_path = os.path.join(root, relaxed_model_name)
+                row[model_index] = generate_3dmol_html(model_path)
+                row[relaxed_model_index] = generate_3dmol_html(relaxed_model_path) 
                 row[pLDDT_index] = best_score_from_tsv.get('pLDDT', 'n/a')
                 row[ipTM_index] = best_score_from_tsv.get('ipTM', 'n/a')
                 row[pTM_index] = best_score_from_tsv.get('pTM', 'n/a')
@@ -156,17 +163,23 @@ def generate_html_table(headers: List[str], rows: List[List[str]], output_file: 
         f.write('<label for="rowsPerPage"> prediction(s) </label>\n')
         f.write('<table id="summaryTable">\n')
         f.write('<thead>\n<tr>\n')
-        for header in headers[:-2]:
+        for header in headers[:-3]:
             f.write(f'<th onclick="sortTable({headers.index(header)})">{header}</th>\n')
+        f.write(f'<th>{headers[-3]}</th>\n')
         f.write(f'<th>{headers[-2]}</th>\n')
         f.write(f'<th>{headers[-1]}</th>\n')
         f.write('</tr>\n</thead>\n<tbody>\n')
         for row in rows:
             f.write('<tr>\n')
-            for cell in row[:-2]:
+            for cell in row[:-3]:
                 f.write(f'<td>{cell}</td>\n')
             f.write(
                 f'<td><button onclick="visualizePDB(\'{row[model_index]}\')">Show structure</button></td>\n')
+            if row[relaxed_model_index] != 'n/a':
+                f.write(f'<td><button onclick="visualizePDB(\'{row[relaxed_model_index]}\')">'
+                        f'Show structure</button></td>\n')
+            else:
+                f.write(f'<td>{row[relaxed_model_index]}</td>\n')
             f.write(
                 f'<td><button onclick="openInFolder(\'{row[result_path_index]}\')">Open</button></td>\n')
             f.write('</tr>\n')
