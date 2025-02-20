@@ -68,6 +68,9 @@ def get_valid_input_files_with_type(dir_or_file: str, is_batch: bool) -> Valid_I
             print(f"\n-- Error: The input query is not a file. "
                   f"Please provide a valid FASTA/A3M file path.\n")
             sys.exit()
+    
+    if is_batch:        
+        print(f"\n-- {current_time()} > Validating {len(file_paths)} input file(s) ...")
 
     # checking if file is valid
     invalid_files: List[str] = []
@@ -80,13 +83,26 @@ def get_valid_input_files_with_type(dir_or_file: str, is_batch: bool) -> Valid_I
             if not is_valid_protein_a3m(a3m_file):
                 invalid_files.append(a3m_file)
 
-    if len(invalid_files) != 0:
-        format_invalids = join_list_elements_by_character(invalid_files, "\n")
-        print(f"\n-- Error: The following files are not valid protein {file_ext.upper()} files: \n{format_invalids}\n"
-              f"Please provide valid protein FASTA files and try again.\n")
-        sys.exit()
+    valid_file_paths = [file_path for file_path in file_paths if file_path not in invalid_files]
+    format_invalids = join_list_elements_by_character(invalid_files, "\n")
+    if is_batch:
+        if len(invalid_files) == len(file_paths):
+            print(f"\n-- Error: No valid {file_ext.upper()} files detected in the input directory. "
+                  f"Please provide valid input files and try again.\n")
+            sys.exit()
+        elif len(invalid_files) > 0:
+            print(f"\n-- Warning: Invalid {file_ext.upper()} files: \n{format_invalids}"
+                  f"\n\n-- Warning: Continuing with {len(valid_file_paths)} valid file(s).")
+            valid_files = Valid_Input(file_ext, valid_file_paths)
+            return valid_files
+    else:
+        if len(invalid_files) != 0:
+            format_invalids = join_list_elements_by_character(invalid_files, "\n")
+            print(f"\n-- Error: The following file(s) are not valid {file_ext.upper()} files: \n{format_invalids}\n"
+                  f"\n\n-- Error: Please provide valid input file(s) and try again.\n")
+            sys.exit()
 
-    valid_files = Valid_Input(file_ext, file_paths)
+    valid_files = Valid_Input(file_ext, valid_file_paths)
     return valid_files
 
 
@@ -229,8 +245,8 @@ def predict_3d_structure(args) -> None:
         # Run Jackhmmer
         unique_fasta_file_paths = list(query_hash_to_single_fasta_path.values())
 
-        msa_start_log_text = f"Started Step 1: MSA construction for {len(valid_input_files.file_paths)} sequences" \
-            if is_batch else f"Started Step 1: MSA construction"
+        msa_start_log_text = f"Started: MSA construction for {len(valid_input_files.file_paths)} sequences" \
+            if is_batch else f"Started: MSA construction"
 
         update_time_log(time_log_file, msa_start_log_text, True)
         run_jackhmmer(unique_fasta_file_paths, sequence_database.fasta_db, args.threads, temp_dir_path)
@@ -271,8 +287,8 @@ def predict_3d_structure(args) -> None:
             a3m_file_name = join_list_elements_by_character(query_fasta_features.accnrs, "-")
             filtered_homology_search_output = os.path.join(filtered_a3m_path, f"{a3m_file_name}.a3m")
 
-            msa_end_log_text = f"Completed Step 1: MSA construction for {os.path.basename(result_subdirectory)} " \
-                if is_batch else f"Completed Step 1: MSA construction"
+            msa_end_log_text = f"Completed: MSA construction for {os.path.basename(result_subdirectory)} " \
+                if is_batch else f"Completed: MSA construction"
             update_time_log(time_log_file, msa_end_log_text, True)
 
             structure_prediction_out_path = os.path.join(result_subdirectory, "flashfold_structure")
@@ -299,18 +315,18 @@ def predict_3d_structure(args) -> None:
 
             fold_log_extra = f" for {os.path.basename(os.path.dirname(prediction_out_path))}" if is_batch else ""
 
-            fold_start_log = f"Started Step 2: Structure prediction{fold_log_extra}"
+            fold_start_log = f"Started: Structure prediction{fold_log_extra}"
             update_time_log(time_log_file, fold_start_log, True)
             run_colabfold(is_monomer, filtered_a3m_file, prediction_out_path, args.num_models,
-                          args.num_recycle, args.stop_at_score, args.num_structure_relax, args.relax_max_iterations)
+                          args.num_recycles, args.stop_at_score, args.num_model_relax, args.relax_max_iterations)
 
-            fold_end_log = f"Completed Step 2: Structure prediction{fold_log_extra}"
+            fold_end_log = f"Completed: Structure prediction{fold_log_extra}"
             update_time_log(time_log_file, fold_end_log, True)
 
-            score_start_log = f"Started Step 3: Scoring{fold_log_extra}"
+            score_start_log = f"Started: Scoring{fold_log_extra}"
             update_time_log(time_log_file, score_start_log, True)
             generate_score_matrix(prediction_out_path, args.cutoff, is_monomer)
-            score_end_log = f"Completed Step 3: Scoring{fold_log_extra}"
+            score_end_log = f"Completed: Scoring{fold_log_extra}"
             update_time_log(time_log_file, score_end_log, True)
 
     if not is_batch:

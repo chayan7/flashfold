@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.0.9] - 2025-02-20
+
+#### Added
+- Shows relaxed structure in summary when available.
+- Shows log message for batch query.
+
+#### Changed
+- Version number is updated.
+- Summary report is updated.
+
+#### Fixed
+- Log message for batch query.
+
+#### Removed
+- NA
+
+
 ## [1.0.8] - 2025-02-15
 
 #### Added

@@ -7,7 +7,7 @@ from flashfold.utils import is_zero_or_pos_int, is_pos_int
 def main() -> None:
     # Create the main parser
     parser = argparse.ArgumentParser(description='Predict protein structure from sequence.')
-    parser.add_argument("-v", "--version", action="version", version="∞∞ FlashFold v1.0.8 ∞∞")
+    parser.add_argument("-v", "--version", action="version", version="∞∞ FlashFold v1.0.9 ∞∞")
 
     # Create subparsers for different commands
     subparsers = parser.add_subparsers(dest='command', title='commands',
@@ -107,14 +107,14 @@ def main() -> None:
     fold.add_argument("--num_models", type=int, choices=range(1, 6), default=5,
                       help="number of models to use for structure prediction. Reducing the number of models speeds "
                            "up the prediction but results in lower quality. (default: 5)")
-    fold.add_argument("--num_recycle", metavar="<Integer, >=1>", type=is_pos_int, default=3,
+    fold.add_argument("--num_recycles", metavar="<Integer, >=1>", type=is_pos_int, default=3,
                       help="number of prediction recycles. Increasing recycles can improve the prediction quality "
                            "but slows down the prediction. (default: 3)")
     fold.add_argument("--stop_at_score", metavar="<Integer>", type=int, default=100,
                       help="compute models until pLDDT (single chain) or pTM-score (multimer) > threshold is reached"
                            ". This speeds up prediction by running less models for easier queries. (default: 100) ")
-    fold.add_argument("--num_structure_relax", metavar="<Integer, >=0>", type=is_zero_or_pos_int, default=0,
-                      help="specify how many of the top-ranked structures to relax using OpenMM/Amber. Typically "
+    fold.add_argument("--num_model_relax", metavar="<Integer, >=0>", type=is_zero_or_pos_int, default=0,
+                      help="specify how many of the top-ranked models to relax using OpenMM/Amber. Typically "
                            "relaxing the top-ranked prediction is enough and speeds up the runtime. (default: 0)")
     fold.add_argument("--relax_max_iterations", metavar="<Integer>", type=int, default=2000,
                       help="maximum number of iterations for the relaxation process. (default: 2000)")
