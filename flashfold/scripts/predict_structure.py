@@ -12,7 +12,7 @@ from flashfold.utils import is_valid_protein_fasta, is_valid_database_dir, manag
     join_list_elements_by_character, create_new_directory, run_jackhmmer, \
     get_files_from_path_by_extension, run_colabfold, current_time, current_time_raw, update_time_log, \
     get_valid_sequence_records_from_fasta, get_input_fasta_features, Database, create_a3m_for_folding, \
-    get_query_to_a3m_records, generate_score_matrix, get_filename_without_extension, replace_char_from_string, \
+    get_combined_a3m_records, generate_score_matrix, get_filename_without_extension, replace_char_from_string, \
     JsonStructure, run_jobs_in_parallel, is_valid_protein_a3m, is_a3m_monomer
 
 # Define the named tuple
@@ -256,9 +256,9 @@ def predict_3d_structure(args) -> None:
         for query_hash in query_hash_to_msa_paths:
             for msa_path in query_hash_to_msa_paths[query_hash]:
                 copy_a3m_command = f"cp {temp_dir_path}/{query_hash}.a3m {msa_path}"
-                copy_sto_command = f"cp {temp_dir_path}/{query_hash}.sto {msa_path}"
+                copy_tsv_command = f"cp {temp_dir_path}/{query_hash}.tsv {msa_path}"
                 copy_alignment_files_commands.append(copy_a3m_command)
-                copy_alignment_files_commands.append(copy_sto_command)
+                copy_alignment_files_commands.append(copy_tsv_command)
 
         log_text = "files" if len(copy_alignment_files_commands) > 1 else "file"
         run_jobs_in_parallel(args.threads, 1, copy_alignment_files_commands,
@@ -280,10 +280,12 @@ def predict_3d_structure(args) -> None:
 
             # Make combined alignment file
             a3m_files = get_files_from_path_by_extension(alignment_path, ".a3m")
-            a3m_records = get_query_to_a3m_records(a3m_files, query_fasta_features.chain_seq_hashes)
+            tsv_files = get_files_from_path_by_extension(alignment_path, ".tsv")
+            combined_a3m_records = get_combined_a3m_records(a3m_files, tsv_files, query_fasta_features.chain_seq_hashes)
             filtered_a3m_path = os.path.join(result_subdirectory, "flashfold_filtered_msa")
             create_new_directory(filtered_a3m_path)
-            create_a3m_for_folding(homology_summary_json_file, a3m_records, query_fasta_features, filtered_a3m_path)
+            create_a3m_for_folding(homology_summary_json_file, combined_a3m_records, query_fasta_features,
+                                   filtered_a3m_path)
             a3m_file_name = join_list_elements_by_character(query_fasta_features.accnrs, "-")
             filtered_homology_search_output = os.path.join(filtered_a3m_path, f"{a3m_file_name}.a3m")
 

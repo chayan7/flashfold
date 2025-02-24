@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.1.0] - 2025-02-25
+
+#### Added
+- Python script to reformat alignment files.
+- CD-HIT based diversity aware deduplication method.
+
+#### Changed
+- Version number is updated.
+- Alignment formatting and deduplication process.
+
+#### Fixed
+- Reduction of hits when required, while maintaining diversity.
+
+#### Removed
+- Perl script for reformating the stockholm file.
+
+
 ## [1.0.9] - 2025-02-20
 
 #### Added
