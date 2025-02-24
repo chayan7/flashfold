@@ -7,7 +7,7 @@ from flashfold.utils import (is_installed, get_contents_by_column, file_has_cont
                              is_valid_protein_fasta, is_valid_path)
 
 # List of dependencies
-dependencies = ["datasets", "jackhmmer", "perl", "colabfold_batch"]
+dependencies = ["datasets", "jackhmmer", "colabfold_batch", "cd-hit"]
 
 
 @pytest.fixture(scope="session", autouse=True)
