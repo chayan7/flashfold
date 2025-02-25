@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2025-02-25
+
+#### Added
+- Python script to reformat alignment files.
+
+#### Changed
+- Version number is updated.
+- Alignment formatting and deduplication process.
+
+#### Fixed
+- Issue with the alignment file formatting.
+
+#### Removed
+- Perl script for reformating the stockholm file.
+
 
 ## [1.0.9] - 2025-02-20
 

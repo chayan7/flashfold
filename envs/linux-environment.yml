@@ -8,7 +8,6 @@ dependencies:
   - python=3.10
   - openmm==7.7.0 
   - pdbfixer
-  - perl
   - ncbi-datasets-cli
   - hmmer
   - pip
