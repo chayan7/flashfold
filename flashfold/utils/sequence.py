@@ -311,17 +311,17 @@ def get_input_fasta_features(sequence_records: List[Dict]) -> Infile_feats:
                         hash_to_fasta, empty_subunits)
 
 
-def get_alignment_records_from_a3m_file(a3m_file: str) -> Dict[str, str]:
+def get_a3m_records(file_path: str) -> Dict[str, str]:
     """
-    Get alignment records from an A3M file. The alignment records are stored in a dictionary.
+    Get alignment records from a file. The records are stored in a dictionary.
     Args:
-        a3m_file: Path to the A3M file.
+        file_path: Path to the FASTA/A3M file.
 
     Returns:
-        Dict: A dictionary containing the accession and sequence of the alignment records
+        Dict: A dictionary containing the accession and sequence
     """
-    parsed_sequence = SeqIO.parse(a3m_file, "fasta")
-    aln_records = {}
+    parsed_sequence = SeqIO.parse(file_path, "fasta")
+    records = {}
     for record in parsed_sequence:
         accession = str(record.id)
         sequence = str(record.seq)
@@ -331,8 +331,8 @@ def get_alignment_records_from_a3m_file(a3m_file: str) -> Dict[str, str]:
         elif sequence == "":
             pass
         else:
-            aln_records[accession] = sequence
-    return aln_records
+            records[accession] = sequence
+    return records
 
 
 def combine_sequences(accessions: List, sequences: List) -> Sequence:
