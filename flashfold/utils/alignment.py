@@ -27,9 +27,9 @@ def run_jackhmmer(fasta_files: list, database_fasta: str, provided_cpu: int, out
         None
     """
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
-    reformat_script = os.path.join(current_file_dir, "reformat.pl")
+    reformat_script = os.path.join(current_file_dir, "reformat.py")
     jackhmmer_commands = []
-    sto_to_a3m_commands = []
+    reformat_sto_commands = []
     cpu_per_job = min(8, provided_cpu)
     for fasta_file in fasta_files:
         fasta_basename = os.path.basename(fasta_file)
@@ -40,11 +40,12 @@ def run_jackhmmer(fasta_files: list, database_fasta: str, provided_cpu: int, out
         sto_command = ("jackhmmer --noali --F1 0.0005 --F2 0.00005 --F3 0.0000005 --incE 0.0001 -E 0.0001 -N 1 "
                        "-o /dev/null --cpu %s -A %s %s %s" % (cpu_per_job, sto_file_path, fasta_file, database_fasta))
         jackhmmer_commands.append(sto_command)
-        sto_to_a3m_command = ("perl %s sto a3m %s %s > /dev/null" % (reformat_script, sto_file_path, a3m_file_path))
-        sto_to_a3m_commands.append(sto_to_a3m_command)
+        reformat_sto_command = ("python3 %s %s --output_a3m %s " % (reformat_script, sto_file_path, a3m_file_path))
+        reformat_sto_commands.append(reformat_sto_command)
 
     run_jobs_in_parallel(provided_cpu, cpu_per_job, jackhmmer_commands, "Homology searching")
-    run_jobs_in_parallel(provided_cpu, 1, sto_to_a3m_commands, "Alignment reformatting")
+    run_jobs_in_parallel(provided_cpu, 1, reformat_sto_commands, "Alignment reformatting")
+    return None
 
 
 def has_good_coverage(sequence: str, coverage: float = 0.5) -> bool:
@@ -210,9 +211,9 @@ def make_alignment_pair(query_colon_hits: List[str], input_query_feats: Infile_f
             dummy_counter = 0
             for hit_index in range(len(hit_combo)):
                 subunit_based_hit = hit_combo[hit_index]
+                length = len(input_query_feats.chain_seqs[hit_index])
                 if subunit_based_hit == "-":
                     dummy_counter += 1
-                    length = len(input_query_feats.chain_seqs[hit_index])
                     created_sequence = "-" * length
                     accession_combo[hit_index] = "DUMMY"
                     seq_combo[hit_index] = created_sequence
@@ -224,14 +225,13 @@ def make_alignment_pair(query_colon_hits: List[str], input_query_feats: Infile_f
                         seq_combo[hit_index] = sequence
                     else:
                         dummy_counter += 1
-                        created_sequence = "-" * len(sequence)
+                        created_sequence = "-" * length
                         accession_combo[hit_index] = "DUMMY"
                         hit_combo[hit_index] = "-"
                         seq_combo[hit_index] = created_sequence
 
             if dummy_counter < gappy_seq_limit:
                 list_of_alignment.append(combine_sequences(accession_combo, seq_combo))
-
     return list_of_alignment
 
 

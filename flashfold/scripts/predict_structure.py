@@ -256,9 +256,7 @@ def predict_3d_structure(args) -> None:
         for query_hash in query_hash_to_msa_paths:
             for msa_path in query_hash_to_msa_paths[query_hash]:
                 copy_a3m_command = f"cp {temp_dir_path}/{query_hash}.a3m {msa_path}"
-                copy_sto_command = f"cp {temp_dir_path}/{query_hash}.sto {msa_path}"
                 copy_alignment_files_commands.append(copy_a3m_command)
-                copy_alignment_files_commands.append(copy_sto_command)
 
         log_text = "files" if len(copy_alignment_files_commands) > 1 else "file"
         run_jobs_in_parallel(args.threads, 1, copy_alignment_files_commands,

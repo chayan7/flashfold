@@ -92,19 +92,20 @@ class Database:
 
     def process_homology_search_output(self, path_to_alignment: str, query_seq_hashes: List[str],
                                        json_out_file: str) -> None:
-        sto_files = get_files_from_path_by_extension(path_to_alignment, ".sto")
-        if len(sto_files) == 0:
-            raise FileNotFoundError(f"No .sto files found in the directory: {path_to_alignment}")
+        a3m_files = get_files_from_path_by_extension(path_to_alignment, ".a3m")
+        if len(a3m_files) == 0:
+            raise FileNotFoundError(f"No .a3m files found in the directory: {path_to_alignment}")
         gbk_to_hits: Dict[str, List[str]] = defaultdict(list)
         for query_seq_hash in query_seq_hashes:
-            for sto_file_path in sto_files:
-                query_hash = get_filename_without_extension(sto_file_path)
+            for a3m_file_path in a3m_files:
+                query_hash = get_filename_without_extension(a3m_file_path)
                 if query_seq_hash == query_hash:
-                    with open(sto_file_path, "r", encoding="utf-8") as sto_in:
-                        for line in sto_in:
-                            if line.startswith("#=GS"):
-                                hit_accession = line.split(":")[0].split(" ")[1]
-                                hit_hash_key = line.split(":")[0].split(" ")[-1]
+                    with open(a3m_file_path, "r") as a3m_in:
+                        for line in a3m_in:
+                            if line.startswith(">"):
+                                split_line = line.strip().split("\t")
+                                hit_accession = split_line[0][1:]
+                                hit_hash_key = split_line[1]
                                 slash_digit_to_digit_pattern = r'/\d+-\d+'
                                 if is_pattern_matched(slash_digit_to_digit_pattern, hit_accession):
                                     query_hash_colon_hit_accession = f"{query_seq_hash}:{hit_accession}"
