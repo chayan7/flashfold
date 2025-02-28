@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Version number is updated.
 - Alignment formatting and deduplication process.
 - Summary report is updated.
+- Relaxed input checking criteria for MSA (a3m) file.
 
 #### Fixed
 - Reduction of hits when required, while maintaining diversity.
