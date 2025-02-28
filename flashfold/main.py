@@ -123,25 +123,31 @@ def main() -> None:
     fold.add_argument("--cutoff", metavar="<Float>", type=float,
                       help="Cutoff to define distances used for pDockQ2 score calculation of protein complex. "
                            "(default: 10.0)")
+    fold.add_argument("--calc_extra_ptm", action="store_true", default=False,
+                      help="Calculates extra PTM scores (default: False)")
 
     # command summary parser
     desc_summary = ''' Generates an interactive HTML report and a CSV file from FlashFold output. '''
     summary = subparsers.add_parser('summary', description=desc_summary)
     summary.add_argument("-d", "--directory", metavar="<File_Dir>", type=str, required=True,
                          help="path to FlashFold output directory")
-    summary.add_argument('-fl', '--filter_by_plddt', metavar="<Float>", type=float,
+    summary.add_argument("-fl", "--filter_by_plddt", metavar="<Float>", type=float,
                          help="Filter output by pLDDT score.")
-    summary.add_argument('-fi', '--filter_by_iptm', metavar="<Float>", type=float,
-                         help="Filter output by ipTM score.")
-    summary.add_argument('-fp', '--filter_by_ptm', metavar="<Float>", type=float,
+    summary.add_argument("-fp", "--filter_by_ptm", metavar="<Float>", type=float,
                          help="Filter output by pTM score.")
-    summary.add_argument('-fip', '--filter_by_iptm_plus_ptm', metavar="<Float>", type=float,
+    summary.add_argument("-fi", "--filter_by_iptm", metavar="<Float>", type=float,
+                         help="Filter output by ipTM score.")
+    summary.add_argument("-fip", "--filter_by_iptm_plus_ptm", metavar="<Float>", type=float,
                          help="Filter output by ipTM+pTM score.")
-    summary.add_argument('-fmd', '--filter_by_min_pdockq2', metavar="<Float>", type=float,
+    summary.add_argument("-fai", "--filter_by_actifptm", metavar="<Float>", type=float,
+                         help="Filter output by actifpTM score.")
+    summary.add_argument("-faip", "--filter_by_actifptm_plus_ptm", metavar="<Float>", type=float,
+                         help="Filter output by actifpTM+pTM score.")
+    summary.add_argument("-fmd", "--filter_by_min_pdockq2", metavar="<Float>", type=float,
                          help="Filter output by minimum pDockQ2 score.")
-    summary.add_argument('-fad', '--filter_by_avg_pdockq2', metavar="<Float>", type=float,
+    summary.add_argument("-fad", "--filter_by_avg_pdockq2", metavar="<Float>", type=float,
                          help="Filter output by average pDockQ2 score.")
-    summary.add_argument('-o', '--output', metavar="<File_Dir>", type=str, required=True,
+    summary.add_argument("-o", "--output", metavar="<File_Dir>", type=str, required=True,
                          help="Path to the summary output directory.")
 
     # Parse the arguments

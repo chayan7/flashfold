@@ -319,15 +319,15 @@ def predict_3d_structure(args) -> None:
 
             fold_start_log = f"Started: Structure prediction{fold_log_extra}"
             update_time_log(time_log_file, fold_start_log, True)
-            run_colabfold(is_monomer, filtered_a3m_file, prediction_out_path, args.num_models,
-                          args.num_recycles, args.stop_at_score, args.num_model_relax, args.relax_max_iterations)
+            run_colabfold(is_monomer, filtered_a3m_file, prediction_out_path, args.num_models, args.num_recycles,
+                          args.stop_at_score, args.num_model_relax, args.relax_max_iterations, args.calc_extra_ptm)
 
             fold_end_log = f"Completed: Structure prediction{fold_log_extra}"
             update_time_log(time_log_file, fold_end_log, True)
 
             score_start_log = f"Started: Scoring{fold_log_extra}"
             update_time_log(time_log_file, score_start_log, True)
-            generate_score_matrix(prediction_out_path, args.cutoff, is_monomer)
+            generate_score_matrix(prediction_out_path, args.cutoff, is_monomer, args.calc_extra_ptm)
             score_end_log = f"Completed: Scoring{fold_log_extra}"
             update_time_log(time_log_file, score_end_log, True)
 

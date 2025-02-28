@@ -3,15 +3,17 @@
 All notable changes to this project will be documented in this file.
 
 
-## [1.1.0] - 2025-02-25
+## [1.1.0] - 2025-02-28
 
 #### Added
 - Python script to reformat alignment files.
 - CD-HIT based diversity aware deduplication method.
+- Optional argument for actual interface pTM (actifpTM). 
 
 #### Changed
 - Version number is updated.
 - Alignment formatting and deduplication process.
+- Summary report is updated.
 
 #### Fixed
 - Reduction of hits when required, while maintaining diversity.
