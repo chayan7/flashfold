@@ -19,6 +19,7 @@ a focus on speed. It also provides a table of quality metrics for the predicted 
 - OS-level Dependencies: 
   - [LocalColabFold](https://github.com/YoshitakaMo/localcolabfold)
   - [HMMER Suite](http://eddylab.org/software/hmmer)
+  - [CD-HIT](https://github.com/weizhongli/cdhit)
 
 ## Installation
 
@@ -289,6 +290,7 @@ and packages:
 *   [Alphafold](https://github.com/google-deepmind/alphafold)
 *   [Colabfold](https://github.com/sokrypton/ColabFold)
 *   [HMMER Suite](http://eddylab.org/software/hmmer)
+*   [CD-HIT](https://github.com/weizhongli/cdhit)
 *   [Biopython](https://biopython.org)
 *   [Chex](https://github.com/deepmind/chex)
 *   [Haiku](https://github.com/deepmind/dm-haiku)
