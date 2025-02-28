@@ -15,13 +15,15 @@ pLDDT_index = 3
 pTM_index = 4
 ipTM_index = 5
 ipTM_plus_pTM_index = 6
-min_pDockQ2_index = 7
-mean_pDockQ2_index = 8
-model_index = 9
-relaxed_model_index = 10
-result_path_index = 11
+actifpTM_index = 7
+actifpTM_plus_pTM_index = 8
+min_pDockQ2_index = 9
+mean_pDockQ2_index = 10
+model_index = 11
+relaxed_model_index = 12
+result_path_index = 13
 
-summary_table_headers = [''] * 12
+summary_table_headers = [''] * 14
 summary_table_headers[query_index] = 'Query'
 summary_table_headers[length_index] = 'Length'
 summary_table_headers[stoichiometry_index] = 'Stoichiometry'
@@ -29,11 +31,14 @@ summary_table_headers[pLDDT_index] = 'pLDDT'
 summary_table_headers[ipTM_index] = 'ipTM'
 summary_table_headers[pTM_index] = 'pTM'
 summary_table_headers[ipTM_plus_pTM_index] = 'ipTM+pTM'
+summary_table_headers[actifpTM_index] = 'actifpTM'
+summary_table_headers[actifpTM_plus_pTM_index] = 'actifpTM+pTM'
 summary_table_headers[min_pDockQ2_index] = 'min_pDockQ2'
 summary_table_headers[mean_pDockQ2_index] = 'mean_pDockQ2'
 summary_table_headers[model_index] = 'Predicted model'
 summary_table_headers[relaxed_model_index] = 'Predicted model (relaxed)'
 summary_table_headers[result_path_index] = 'Path to result'
+
 
 row_per_page_options = [1, 5, 10, 25, 50]
 
@@ -72,7 +77,7 @@ def get_best_score_from_tsv(file_path: str) -> Dict[str, str]:
         rows = [row for row in reader]
     best_score: Dict[str, str] = {}
     for row in rows:
-        if "rank_001" in row[0]:
+        if "_rank_001_" in row[0]:
             for i, header in enumerate(headers):
                 best_score[header] = round_if_float(row[i])
     return best_score
@@ -139,13 +144,40 @@ def get_summary_table_rows_from_result_path(path_to_results: str) -> List[List[s
                 row[ipTM_index] = best_score_from_tsv.get('ipTM', 'n/a')
                 row[pTM_index] = best_score_from_tsv.get('pTM', 'n/a')
                 row[ipTM_plus_pTM_index] = best_score_from_tsv.get('ipTM+pTM', 'n/a')
+                row[actifpTM_index] = best_score_from_tsv.get('actifpTM', 'n/a')
+                row[actifpTM_plus_pTM_index] = best_score_from_tsv.get('actifpTM+pTM', 'n/a')
                 row[min_pDockQ2_index] = best_score_from_tsv.get('min_pDockQ2', 'n/a')
                 row[mean_pDockQ2_index] = best_score_from_tsv.get('mean_pDockQ2', 'n/a')
                 row_of_rows.append(row)
     return row_of_rows
 
 
+def remove_na_columns(headers: List[str], row_of_rows: List[List[str]]) -> Tuple[List[str], List[List[str]]]:
+    """
+    Removes columns where all the values are 'n/a'.
+
+    :param headers: List of headers.
+    :param row_of_rows: List of rows, where each row is a list of values.
+    :return: Tuple of filtered headers and rows.
+    """
+    # Transpose rows to columns
+    columns = list(zip(*row_of_rows))
+
+    # Identify columns where all values are 'n/a'
+    columns_to_keep = [i for i, col in enumerate(columns) if not all(value == 'n/a' for value in col)]
+
+    # Filter headers and rows
+    filtered_headers = [headers[i] for i in columns_to_keep]
+    filtered_rows = [[row[i] for i in columns_to_keep] for row in row_of_rows]
+
+    return filtered_headers, filtered_rows
+
+
 def generate_html_table(headers: List[str], rows: List[List[str]], output_file: str):
+    rev_model_index = headers.index('Predicted model')
+    rev_relaxed_model_index = headers.index('Predicted model (relaxed)') \
+        if 'Predicted model (relaxed)' in headers else -1
+    rev_result_path_index = headers.index('Path to result')
     with open(output_file, 'w') as f:
         f.write('<html>\n<head>\n<title>Summary Table</title>\n')
         f.write(
@@ -163,25 +195,25 @@ def generate_html_table(headers: List[str], rows: List[List[str]], output_file: 
         f.write('<label for="rowsPerPage"> prediction(s) </label>\n')
         f.write('<table id="summaryTable">\n')
         f.write('<thead>\n<tr>\n')
-        for header in headers[:-3]:
+        for header in headers[:rev_model_index]:
             f.write(f'<th onclick="sortTable({headers.index(header)})">{header}</th>\n')
-        f.write(f'<th>{headers[-3]}</th>\n')
-        f.write(f'<th>{headers[-2]}</th>\n')
-        f.write(f'<th>{headers[-1]}</th>\n')
+        for rest_header in headers[rev_model_index:]:
+            f.write(f'<th>{rest_header}</th>\n')
         f.write('</tr>\n</thead>\n<tbody>\n')
         for row in rows:
             f.write('<tr>\n')
-            for cell in row[:-3]:
+            for cell in row[:rev_model_index]:
                 f.write(f'<td>{cell}</td>\n')
             f.write(
-                f'<td><button onclick="visualizePDB(\'{row[model_index]}\')">Show structure</button></td>\n')
-            if row[relaxed_model_index] != 'n/a':
-                f.write(f'<td><button onclick="visualizePDB(\'{row[relaxed_model_index]}\')">'
-                        f'Show structure</button></td>\n')
-            else:
-                f.write(f'<td>{row[relaxed_model_index]}</td>\n')
+                f'<td><button onclick="visualizePDB(\'{row[rev_model_index]}\')">Show structure</button></td>\n')
+            if rev_relaxed_model_index != -1:
+                if row[rev_relaxed_model_index] != 'n/a':
+                    f.write(f'<td><button onclick="visualizePDB(\'{row[rev_relaxed_model_index]}\')">'
+                            f'Show structure</button></td>\n')
+                else:
+                    f.write(f'<td>{row[rev_relaxed_model_index]}</td>\n')
             f.write(
-                f'<td><button onclick="openInFolder(\'{row[result_path_index]}\')">Open</button></td>\n')
+                f'<td><button onclick="openInFolder(\'{row[rev_result_path_index]}\')">Open</button></td>\n')
             f.write('</tr>\n')
         f.write('</tbody>\n</table>\n')
         f.write('<div class="flex-container">\n')
@@ -210,6 +242,8 @@ def make_summary_report(args) -> None:
     filter_dict[pTM_index] = if_none_return_zero(args.filter_by_ptm)
     filter_dict[ipTM_index] = if_none_return_zero(args.filter_by_iptm)
     filter_dict[ipTM_plus_pTM_index] = if_none_return_zero(args.filter_by_iptm_plus_ptm)
+    filter_dict[actifpTM_index] = if_none_return_zero(args.filter_by_actifptm)
+    filter_dict[actifpTM_plus_pTM_index] = if_none_return_zero(args.filter_by_actifptm_plus_ptm)
     filter_dict[min_pDockQ2_index] = if_none_return_zero(args.filter_by_min_pdockq2)
     filter_dict[mean_pDockQ2_index] = if_none_return_zero(args.filter_by_avg_pdockq2)
 
@@ -218,27 +252,30 @@ def make_summary_report(args) -> None:
         print(f"\n-- Error: No results found in the provided path below:\n\t'{os.path.realpath(args.directory)}'\n")
         return
 
+    clean_sum_tab_headers, clean_sum_tab_rows = remove_na_columns(summary_table_headers, summary_table_rows)
     output_html_file_path = os.path.join(os.path.realpath(args.output), 'summary.html')
     output_csv_file_path = os.path.join(os.path.realpath(args.output), 'summary.csv')
-    generate_html_table(summary_table_headers, summary_table_rows, output_html_file_path)
-    generate_csv_table(summary_table_headers, summary_table_rows, output_csv_file_path)
+    generate_html_table(clean_sum_tab_headers, clean_sum_tab_rows, output_html_file_path)
+    generate_csv_table(clean_sum_tab_headers, clean_sum_tab_rows, output_csv_file_path)
     print(f"-- HTML report has been generated: {output_html_file_path}")
     print(f"-- CSV report has been generated: {output_csv_file_path}")
 
     if all([filter_dict[i] == 0 for i in filter_dict]):
-        return None
+        return
 
     filtered_table_rows = [row for row in summary_table_rows if
                            all([make_float(row[i]) >= filter_dict[i] for i in filter_dict])]
 
     if len(filtered_table_rows) == 0:
         print(f"\n-- Warning: No results met the filtering criteria. \n")
-        return None
+        return
+
+    clean_sum_tab_headers, clean_filtered_tab_rows = remove_na_columns(summary_table_headers, filtered_table_rows)
 
     filtered_output_html_file_path = os.path.join(os.path.realpath(args.output), 'summary_filtered.html')
     filtered_output_csv_file_path = os.path.join(os.path.realpath(args.output), 'summary_filtered.csv')
-    generate_html_table(summary_table_headers, filtered_table_rows, filtered_output_html_file_path)
+    generate_html_table(clean_sum_tab_headers, clean_filtered_tab_rows, filtered_output_html_file_path)
     print(f"-- Filtered HTML report has been generated: {filtered_output_html_file_path}")
-    generate_csv_table(summary_table_headers, filtered_table_rows, filtered_output_csv_file_path)
+    generate_csv_table(clean_sum_tab_headers, clean_filtered_tab_rows, filtered_output_csv_file_path)
     print(f"-- Filtered CSV report has been generated: {filtered_output_csv_file_path}")
-    return None
+    return

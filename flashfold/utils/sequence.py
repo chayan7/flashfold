@@ -89,8 +89,9 @@ def is_protein_sequence(sequence: str, is_seq_from_msa: bool = False) -> bool:
     sequence_without_dna_rna_char = "".join([char for char in sequence if char not in dna_rna_chars])
 
     if sequence_without_dna_rna_char == "":
-        print("Invalid sequence: input sequence is either DNA or RNA.")
-        return False
+        if not is_seq_from_msa:
+            print("Invalid sequence: input sequence is either DNA or RNA.")
+            return False
 
     for char in sequence_without_dna_rna_char:
         if char not in valid_amino_acids:
@@ -311,17 +312,17 @@ def get_input_fasta_features(sequence_records: List[Dict]) -> Infile_feats:
                         hash_to_fasta, empty_subunits)
 
 
-def get_alignment_records_from_a3m_file(a3m_file: str) -> Dict[str, str]:
+def get_records(file_path: str) -> Dict[str, str]:
     """
-    Get alignment records from an A3M file. The alignment records are stored in a dictionary.
+    Get alignment records from a file. The records are stored in a dictionary.
     Args:
-        a3m_file: Path to the A3M file.
+        file_path: Path to the FASTA/A3M file.
 
     Returns:
-        Dict: A dictionary containing the accession and sequence of the alignment records
+        Dict: A dictionary containing the accession and sequence
     """
-    parsed_sequence = SeqIO.parse(a3m_file, "fasta")
-    aln_records = {}
+    parsed_sequence = SeqIO.parse(file_path, "fasta")
+    records = {}
     for record in parsed_sequence:
         accession = str(record.id)
         sequence = str(record.seq)
@@ -331,8 +332,24 @@ def get_alignment_records_from_a3m_file(a3m_file: str) -> Dict[str, str]:
         elif sequence == "":
             pass
         else:
-            aln_records[accession] = sequence
-    return aln_records
+            records[accession] = sequence
+    return records
+
+
+def get_sequence_length_from_single_fasta(fasta_file: str) -> int:
+    """
+    Get the length of a sequence from a single FASTA file.
+    Args:
+        fasta_file: Path to the FASTA file.
+
+    Returns:
+        int: The length of the sequence.
+    """
+    sequence_record = get_records(fasta_file)
+    if len(sequence_record) > 1:
+        raise ValueError("More than one sequence found in the file.")
+    sequence_length = len(list(sequence_record.values())[0])
+    return sequence_length
 
 
 def combine_sequences(accessions: List, sequences: List) -> Sequence:

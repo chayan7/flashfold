@@ -8,9 +8,9 @@ dependencies:
   - python=3.10
   - openmm==8.0.0
   - pdbfixer==1.9
-  - perl
   - ncbi-datasets-cli
   - hmmer
+  - cd-hit
   - dm-tree
   - pip
   - pip:

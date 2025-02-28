@@ -23,36 +23,6 @@ PdockQ_Calc_Out = namedtuple('PdockQ_Calc_Out', ["num_res_list", "if_plddt_list"
                                                  "num_diso_list", "pdockq_list", "length_list"])
 
 
-def extract_plddt(log_line: str) -> Optional[float]:
-    """
-    Extracts the pLDDT value from a log line.
-
-    :param log_line: A string containing the log line.
-    :return: The pLDDT value as a float if found, otherwise None.
-    """
-    pattern = r"pLDDT=(\d+(\.\d+)?)"
-    match = re.search(pattern, log_line)
-    if match:
-        return float(match.group(1))
-    else:
-        return None
-
-
-def extract_ptm(log_line: str) -> Optional[float]:
-    """
-    Extracts the pTM value from a log line.
-
-    :param log_line: A string containing the log line.
-    :return: The pTM value as a float if found, otherwise None.
-    """
-    pattern = r"pTM=(\d+(\.\d+)?)"
-    match = re.search(pattern, log_line)
-    if match:
-        return float(match.group(1))
-    else:
-        return None
-
-
 def load_structure(pdb_file_path: str) -> Structure:
     """
     Loads a PDB structure from a file and returns a Structure object.
@@ -190,16 +160,21 @@ def sigmoid(x: float, l_cap: float, x0: float, k: float, b: float) -> float:
     return y
 
 
-def generate_score_matrix(path_to_predicted_structure: str, cutoff: Optional[float], is_monomer: bool) -> None:
+def generate_score_matrix(path_to_predicted_structure: str, cutoff: Optional[float], is_monomer: bool,
+                          is_actifptm: bool) -> None:
     """
     Generates a score matrix for the predicted structure.
 
     :param path_to_predicted_structure: Path to the directory containing the predicted structure files.
     :param cutoff: Cutoff value for calculating scores.
     :param is_monomer: Boolean indicating if the structure is a monomer.
+    :param is_actifptm: Boolean indicating if the structure contains active site PTM.
     :return: None
     """
     score_matrix_filepath = os.path.join(path_to_predicted_structure, "score.tsv")
+
+    all_files = os.listdir(path_to_predicted_structure)
+    pdb_files = [f for f in all_files if f.endswith(".pdb") and "_unrelaxed_rank_" in f]
 
     if is_monomer:
         if cutoff:
@@ -207,19 +182,13 @@ def generate_score_matrix(path_to_predicted_structure: str, cutoff: Optional[flo
                   f"but will be used for pDockQ2 scoring for multimers (if provided any).\n")
             pass
 
-        all_files = os.listdir(path_to_predicted_structure)
-        pdb_files = [f for f in all_files if f.endswith(".pdb") and "unrelaxed" in f]
         names = []
         plddt_score = []
         ptm = []
 
         for predicted_pdb in pdb_files:
-            pdb_file = predicted_pdb.split("/")[-1]
-            if 'rank' not in pdb_file:
-                print(f"Skipping {pdb_file} as it does not contain 'rank' in the file name.")
-                return
-
-            json_file_name = predicted_pdb.replace(".pdb", ".json").replace("unrelaxed", "scores")
+            json_file_name = (predicted_pdb.replace(".pdb", ".json").
+                              replace("_unrelaxed_", "_scores_"))
             json_file_path = os.path.join(path_to_predicted_structure, json_file_name)
             names.append(predicted_pdb)
             json_file = load_json_file(json_file_path)
@@ -235,36 +204,38 @@ def generate_score_matrix(path_to_predicted_structure: str, cutoff: Optional[flo
 
     if not is_monomer:
         cutoff_score = cutoff if cutoff else 10.0
-        all_files = os.listdir(path_to_predicted_structure)
-        pdb_files = [f for f in all_files if f.endswith(".pdb") and "unrelaxed" in f]
 
         names = []
         mean_pdockq_scores = []
         min_pdockq_scores = []
         all_pdockq2 = []
-        iptm = []
         ptm = []
+        iptm = []
+        actifptm = []
         iptm_ptm = []
+        actifptm_ptm = []
         plddt_score = []
-        for predicted_pdb in pdb_files:
-            pdb_file = predicted_pdb.split("/")[-1]
-            if 'rank' not in pdb_file:
-                print(f"Skipping {pdb_file} as it does not contain 'rank' in the file name.")
-                return
+        pairwise_actifptm = []
+        pairwise_iptm = []
+        per_chain_ptm = []
 
-            json_file_name = predicted_pdb.replace(".pdb", ".json").replace("unrelaxed", "scores")
+        for predicted_pdb in pdb_files:
+            json_file_name = (predicted_pdb.replace(".pdb", ".json").
+                              replace("_unrelaxed_", "_scores_"))
             json_file_path = os.path.join(path_to_predicted_structure, json_file_name)
+
             names.append(predicted_pdb)
             json_file = load_json_file(json_file_path)
 
-            iptm_score = json_file['iptm']
-            iptm.append(iptm_score)
-            ptm.append(json_file['ptm'])
-            iptm_ptm_score = 0.8 * json_file["iptm"] + 0.2 * json_file["ptm"]
-            iptm_ptm.append(iptm_ptm_score)
-
-            mean_plddt = np.mean(json_file["plddt"])
-            plddt_score.append(mean_plddt)
+            ptm.append(json_file.get('ptm', 0))
+            iptm.append(json_file.get('iptm', 0))
+            actifptm.append(json_file.get('actifptm', 0))
+            iptm_ptm.append(0.8 * json_file.get("iptm", 0) + 0.2 * json_file.get("ptm", 0))
+            actifptm_ptm.append(0.8 * json_file.get("actifptm", 0) + 0.2 * json_file.get("ptm", 0))
+            plddt_score.append(np.mean(json_file["plddt"]))
+            pairwise_actifptm.append(json_file.get("pairwise_actifptm", 0))
+            pairwise_iptm.append(json_file.get("pairwise_iptm", 0))
+            per_chain_ptm.append(json_file.get("per_chain_ptm", 0))
 
             pdb_file_path = os.path.join(path_to_predicted_structure, predicted_pdb)
             structure = load_structure(pdb_file_path)
@@ -282,19 +253,45 @@ def generate_score_matrix(path_to_predicted_structure: str, cutoff: Optional[flo
             min_pdockq_scores.append(min_pdockq)
 
             chain_counter = 0
-            pdockq_scores_per_model = []
+            pdockq_scores_per_model = {}
             for chain_unit in structure.get_chains():
                 chain_id = chain_unit.get_id()
-                pdockq_score_with_chain = f"{chain_id}: {pdockq[chain_counter]}"
-                pdockq_scores_per_model.append(pdockq_score_with_chain)
+                pdockq_score_with_chain = pdockq[chain_counter]
+                pdockq_scores_per_model[chain_id] = pdockq_score_with_chain
                 chain_counter += 1
 
             all_pdockq2.append(pdockq_scores_per_model)
 
-        score_dict = {'name': names, 'pLDDT': plddt_score, 'pTM': ptm, 'ipTM': iptm, 'ipTM+pTM': iptm_ptm,
-                      'min_pDockQ2': min_pdockq_scores, 'mean_pDockQ2': mean_pdockq_scores,
-                      'pDockQ2_per_chain': all_pdockq2}
-        collect_data = pd.DataFrame(score_dict)
+        score_dict = {
+            'name': names,
+            'pLDDT': plddt_score,
+            'pTM': ptm,
+            'ipTM': iptm,
+            'ipTM+pTM': iptm_ptm,
+            'min_pDockQ2': min_pdockq_scores,
+            'mean_pDockQ2': mean_pdockq_scores,
+            'pDockQ2_per_chain': all_pdockq2
+        }
+
+        score_dict_with_actifptm = {
+            'name': names,
+            'pLDDT': plddt_score,
+            'pTM': ptm,
+            'ipTM': iptm,
+            'ipTM+pTM': iptm_ptm,
+            'actifpTM': actifptm,
+            'actifpTM+pTM': actifptm_ptm,
+            'min_pDockQ2': min_pdockq_scores,
+            'mean_pDockQ2': mean_pdockq_scores,
+            'pDockQ2_per_chain': all_pdockq2,
+            'pairwise_actifPTM': pairwise_actifptm,
+            'pairwise_ipTM': pairwise_iptm,
+            'per_chain_pTM': per_chain_ptm
+        }
+
+        selected_score_dict = score_dict_with_actifptm if is_actifptm else score_dict
+
+        collect_data = pd.DataFrame(selected_score_dict)
         sorted_collected_data = collect_data.sort_values(by='name')
         sorted_collected_data.to_csv(score_matrix_filepath, sep='\t', index=False)
         print(f"-- {current_time()} > Completed pDockQ2 score calculation for predicted complex\n")
