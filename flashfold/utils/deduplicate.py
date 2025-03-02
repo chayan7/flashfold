@@ -2,6 +2,7 @@ import argparse
 import os
 import shutil
 import subprocess
+import tempfile
 from typing import Dict
 from Bio import SeqIO
 
@@ -53,43 +54,43 @@ def get_min_num_of_diverse_hits(fasta_path: str, query_length: int, outfile: str
                 out_file.write(f"{record}\n")
         return
 
-    # Get the most diverse hits
     root_out_dir = os.path.dirname(outfile)
 
-    for i in range(1, 10):
-        identity = f"{i/10:.2f}"
-        out_dir = os.path.join(root_out_dir, f"{outfile_base_name[:-4]}_cd_hit_{identity}")
-        out_fas = os.path.join(out_dir, f"{outfile_base_name[:-4]}.fas")
-        os.makedirs(out_dir, exist_ok=True)
-        cd_hit_command = ("cd-hit -i %s -o %s -c %s -T %s -M %s" %
-                          (fasta_path, out_fas, identity, threads, Memory_CD_hit))
-        try:
-            subprocess.run(cd_hit_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except subprocess.CalledProcessError as _:
-            continue
+    with tempfile.TemporaryDirectory(dir=root_out_dir) as temp_dir:
+        for i in range(1, 10):
+            identity = f"{i/10:.2f}"
+            out_dir = os.path.join(temp_dir, f"{outfile_base_name[:-4]}_cd_hit_{identity}")
+            out_fas = os.path.join(out_dir, f"{outfile_base_name[:-4]}.fas")
+            os.makedirs(out_dir, exist_ok=True)
+            cd_hit_command = ("cd-hit -i %s -o %s -c %s -T %s -M %s" %
+                              (fasta_path, out_fas, identity, threads, Memory_CD_hit))
+            try:
+                subprocess.run(cd_hit_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            except subprocess.CalledProcessError as _:
+                continue
 
-        seq_records = get_fasta_records(out_fas)
+            seq_records = get_fasta_records(out_fas)
 
-        if len(seq_records) >= min_sequences:
-            with open(outfile, 'w') as out_file:
-                for record in seq_records:
-                    out_file.write(f"{record}\n")
-            return
-        elif i == 9:
-            with open(outfile, 'w') as out_file:
-                s = -1
-                for record in init_seq_records:
-                    s += 1
-                    if s < 1000:
+            if len(seq_records) >= min_sequences:
+                with open(outfile, 'w') as out_file:
+                    for record in seq_records:
                         out_file.write(f"{record}\n")
-                    else:
-                        sequence_length = len(init_seq_records[record])
-                        # Check if the sequence length is at least 50% of the query length
-                        if round(sequence_length/query_length, 2) >= 0.5:
+                return
+            elif i == 9:
+                with open(outfile, 'w') as out_file:
+                    s = -1  # Assuming that the first one is the query sequence
+                    for record in init_seq_records:
+                        s += 1
+                        if s <= min_sequences:  # Include the first required sequences as they are
                             out_file.write(f"{record}\n")
-            return
-        else:
-            continue
+                        else:
+                            sequence_length = len(init_seq_records[record])
+                            # Check if the sequence length is at least 50% of the query length
+                            if round(sequence_length/query_length, 2) >= 0.5:
+                                out_file.write(f"{record}\n")
+                return
+            else:
+                continue
     return
 
 
