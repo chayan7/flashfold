@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.1.1] - 2025-03-03
+
+#### Added
+- Tempdir for storing CD-HIT output files.
+
+#### Changed
+- Version number is updated.
+
+#### Fixed
+- Deletes temp file upon finishing the deduplication.
+
+#### Removed
+- NA
+
+
 ## [1.1.0] - 2025-02-28
 
 #### Added

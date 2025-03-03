@@ -29,9 +29,7 @@ def run_jackhmmer(fasta_files: list, database_fasta: str, provided_cpu: int, out
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
     reformat_script = os.path.join(current_file_dir, "reformat.py")
     deduplicate_script = os.path.join(current_file_dir, "deduplicate.py")
-    jackhmmer_commands = []
-    reformat_sto_commands = []
-    deduplicate_commands = []
+    combined_commands = []
     cpu_per_job = min(8, provided_cpu)
     for fasta_file in fasta_files:
         fasta_seq_length = get_sequence_length_from_single_fasta(fasta_file)
@@ -46,18 +44,14 @@ def run_jackhmmer(fasta_files: list, database_fasta: str, provided_cpu: int, out
         diverse_hits_file_path = os.path.join(os.path.abspath(out_path), diverse_hits_file_name)
         sto_command = ("jackhmmer --noali --F1 0.0005 --F2 0.00005 --F3 0.0000005 --incE 0.0001 -E 0.0001 -N 1 "
                        "-o /dev/null --cpu %s -A %s %s %s" % (cpu_per_job, sto_file_path, fasta_file, database_fasta))
-        jackhmmer_commands.append(sto_command)
         reformat_sto_command = ("python3 %s %s --output_a3m %s --output_fas %s"
                                 % (reformat_script, sto_file_path, a3m_file_path, fas_file_path))
-        reformat_sto_commands.append(reformat_sto_command)
         deduplicate_command = ("python3 %s %s --query_length %s --min_sequences %s --output %s --threads %s"
                                 % (deduplicate_script, fas_file_path, fasta_seq_length, min_jackhmmer_hits,
                                    diverse_hits_file_path, cpu_per_job))
-        deduplicate_commands.append(deduplicate_command)
-
-    run_jobs_in_parallel(provided_cpu, cpu_per_job, jackhmmer_commands, "Homology searching")
-    run_jobs_in_parallel(provided_cpu, 1, reformat_sto_commands, "Alignment reformatting")
-    run_jobs_in_parallel(provided_cpu, cpu_per_job, deduplicate_commands, "Deduplication")
+        combined_command = f"{sto_command} && {reformat_sto_command} && {deduplicate_command}"
+        combined_commands.append(combined_command)
+    run_jobs_in_parallel(provided_cpu, cpu_per_job, combined_commands, "Homology searching")
 
 
 def has_good_coverage(sequence: str, coverage: float = 0.5) -> bool:
