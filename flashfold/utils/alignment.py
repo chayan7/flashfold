@@ -1,6 +1,6 @@
 import os
 import itertools
-from typing import List, Dict
+from typing import List, Dict, Optional
 from .util import get_filename_without_extension, join_list_elements_by_character, current_time
 from .sequence import Sequence, Infile_feats, get_records, combine_sequences, \
     combine_gappy_sequences, make_hash_fasta_sequence, get_sequence_length_from_single_fasta
@@ -75,7 +75,8 @@ def has_good_coverage(sequence: str, coverage: float = 0.5) -> bool:
         return False
 
 
-def get_combined_a3m_records(a3m_files: List[str], tsv_files: List[str], query_hashes: List[str]) -> A3M_Records:
+def get_combined_a3m_records(a3m_files: List[str], tsv_files: List[str],
+                             query_hashes: List[str]) -> Optional[A3M_Records]:
     """
     Get combined A3M records for all subunits.
 
@@ -85,28 +86,40 @@ def get_combined_a3m_records(a3m_files: List[str], tsv_files: List[str], query_h
         query_hashes (List[str]): List of query hashes.
 
     Returns:
-        A3M_Records: A named tuple of query hash to sequence and hits per query.
+        A3M_Records or None: A named tuple of query hash to sequence and hits per query or None.
     """
+
+    query_hash_to_tsv_records = dict()
+    for tsv_file in tsv_files:
+        tsv_file_without_extension = get_filename_without_extension(tsv_file)
+        tsv_query_hash = tsv_file_without_extension.split("_", 1)[0]
+        tsv_record_set = {f"{tsv_query_hash}:{line.rstrip().split()[0].strip()}" for line in open(tsv_file, "r")}
+        query_hash_to_tsv_records[tsv_query_hash] = tsv_record_set
+
     query_hash_colon_hit_to_a3m = {}
     hit_count_per_query = []
     for query_hash in query_hashes:
         count = -1  # Because the first hit is the query itself
-        for a3m_file, tsv_file in zip(sorted(a3m_files), sorted(tsv_files)):
+        for a3m_file in a3m_files:
             a3m_file_without_extension = get_filename_without_extension(a3m_file)
-            tsv_file_without_extension = get_filename_without_extension(tsv_file)
             a3m_query_hash = a3m_file_without_extension.split("_", 1)[0]
-            tsv_query_hash = tsv_file_without_extension.split("_", 1)[0]
-            if query_hash == a3m_query_hash and query_hash == tsv_query_hash:
-                tsv_records = [f"{query_hash}:{line.rstrip().split()[0].strip()}" for line in open(tsv_file, "r")]
+            if query_hash == a3m_query_hash:
+                tsv_records = query_hash_to_tsv_records.get(query_hash, None)
+                if tsv_records is None:
+                    print(f"-- Warning: No TSV records found for query hash: {query_hash}")
+                    continue
                 a3m_records = get_records(a3m_file)
                 for hit_accession in a3m_records:
                     query_hash_colon_hit_accession = f"{query_hash}:{hit_accession}"
                     query_hash_colon_hit_to_a3m[query_hash_colon_hit_accession] = {
-                        "is_ignorable": tsv_records.count(query_hash_colon_hit_accession) == 0,
+                        "is_ignorable": query_hash_colon_hit_accession not in tsv_records,
                         "a3m_sequence": a3m_records[hit_accession]
                     }
                     count += 1
         hit_count_per_query.append(count)
+
+    if sum(hit_count_per_query) == 0:
+        return None
 
     return A3M_Records(query_hash_to_seq=query_hash_colon_hit_to_a3m, hits_per_query=hit_count_per_query)
 

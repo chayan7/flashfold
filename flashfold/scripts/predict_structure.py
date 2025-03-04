@@ -282,6 +282,11 @@ def predict_3d_structure(args) -> None:
             a3m_files = get_files_from_path_by_extension(alignment_path, ".a3m")
             tsv_files = get_files_from_path_by_extension(alignment_path, ".tsv")
             combined_a3m_records = get_combined_a3m_records(a3m_files, tsv_files, query_fasta_features.chain_seq_hashes)
+
+            if not combined_a3m_records:
+                print(f"\n-- Error: No valid MSA records found for {os.path.basename(result_subdirectory)}")
+                return
+
             filtered_a3m_path = os.path.join(result_subdirectory, "flashfold_filtered_msa")
             create_new_directory(filtered_a3m_path)
             create_a3m_for_folding(homology_summary_json_file, combined_a3m_records, query_fasta_features,

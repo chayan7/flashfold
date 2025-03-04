@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.1.2] - 2025-03-04
+
+#### Added
+- NA
+
+#### Changed
+- Version number is updated.
+- Fastens MSA filtering process.
+
+#### Fixed
+- Processing of get_combined_a3m_records function that combines A3M record after deduplication.
+
+#### Removed
+- NA
+
+
 ## [1.1.1] - 2025-03-03
 
 #### Added
