@@ -5,7 +5,7 @@ import sys
 import csv
 import py3Dmol
 import re
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple, Union, Optional
 from flashfold.utils import is_valid_path
 
 query_index = 0
@@ -66,7 +66,7 @@ def round_if_float(input_item: Union[str, float]) -> str:
         return str(input_item)
 
 
-def if_none_return_zero(input_item: Union[None, float]) -> float:
+def if_none_return_zero(input_item: Optional[float]) -> float:
     return input_item if input_item is not None else 0.0
 
 
