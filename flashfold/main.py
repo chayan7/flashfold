@@ -7,7 +7,7 @@ from flashfold.utils import is_zero_or_pos_int, is_pos_int
 def main() -> None:
     # Create the main parser
     parser = argparse.ArgumentParser(description='Predict protein structure from sequence.')
-    parser.add_argument("-v", "--version", action="version", version="∞∞ FlashFold v1.1.2 ∞∞")
+    parser.add_argument("-v", "--version", action="version", version="∞∞ FlashFold v1.1.3 ∞∞")
 
     # Create subparsers for different commands
     subparsers = parser.add_subparsers(dest='command', title='commands',
@@ -104,6 +104,8 @@ def main() -> None:
                            "directory containing FASTA files.")
     fold.add_argument("--only_msa", action="store_true", default=False,
                       help="only produces MSA for given query (default: False)")
+    fold.add_argument("--only_json", action="store_true", default=False,
+                      help="only produces json file for AlphaFold3 input for given query (default: False)")
     fold.add_argument("--num_models", type=int, choices=range(1, 6), default=5,
                       help="number of models to use for structure prediction. Reducing the number of models speeds "
                            "up the prediction but results in lower quality. (default: 5)")

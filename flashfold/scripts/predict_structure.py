@@ -7,13 +7,13 @@ from typing import List, Dict, Tuple, Literal
 from collections import defaultdict
 from collections import namedtuple
 
-
+from flashfold.tools import run_jackhmmer, run_af3tools
 from flashfold.utils import is_valid_protein_fasta, is_valid_database_dir, manage_output_path, \
-    join_list_elements_by_character, create_new_directory, run_jackhmmer, \
+    join_list_elements_by_character, create_new_directory, is_valid_protein_a3m, is_a3m_monomer, \
     get_files_from_path_by_extension, run_colabfold, current_time, current_time_raw, update_time_log, \
     get_valid_sequence_records_from_fasta, get_input_fasta_features, Database, create_a3m_for_folding, \
     get_combined_a3m_records, generate_score_matrix, get_filename_without_extension, replace_char_from_string, \
-    JsonStructure, run_jobs_in_parallel, is_valid_protein_a3m, is_a3m_monomer
+    JsonStructure, run_jobs_in_parallel
 
 # Define the named tuple
 Valid_Input = namedtuple('Valid_Input', ['file_ext', 'file_paths'])
@@ -204,9 +204,14 @@ def predict_3d_structure(args) -> None:
 
         infile_features_json.add_entry(valid_file, "temp", temp_dir_path)
 
-        #structure prediction out path
+        # structure prediction out path
         structure_prediction_out_path = os.path.join(parent_result_path, "flashfold_structure")
         fold_features.add_entry(valid_file, "structure_prediction_path", structure_prediction_out_path)
+
+        # AF3 JSON file out path
+        if args.only_json:
+            af3_json_file_out_path = os.path.join(parent_result_path, "flashfold_json")
+            fold_features.add_entry(valid_file, "af3_json_path", af3_json_file_out_path)
 
         if not is_fasta:
             valid_a3m_file = valid_file
@@ -308,6 +313,24 @@ def predict_3d_structure(args) -> None:
 
         # remove temp directory
         shutil.rmtree(temp_dir_path)
+
+    if args.only_json:
+        for each_file in fold_features.get_data():
+            each_file_fold_features = fold_features.get_data()[each_file]
+            filtered_a3m_file = each_file_fold_features["filtered_msa"] if is_fasta \
+                else each_file_fold_features["input_msa"]
+            af3_json_dir = each_file_fold_features["af3_json_path"]
+            create_new_directory(af3_json_dir)
+            json_start_log = f"Started: JSON file creation for {os.path.basename(os.path.dirname(af3_json_dir))} " \
+                if is_batch else f"Started: JSON file creation"
+            update_time_log(time_log_file, json_start_log, True)
+            af3_json_file_name = f"{os.path.basename(filtered_a3m_file).replace('.a3m', '.json')}"
+            af3_json_file_path = os.path.join(af3_json_dir, af3_json_file_name)
+            run_af3tools(filtered_a3m_file, af3_json_file_path)
+            json_end_log = f"Completed: JSON file creation for {os.path.basename(os.path.dirname(af3_json_dir))} " \
+                if is_batch else f"Completed: JSON file creation"
+            update_time_log(time_log_file, json_end_log, True)
+        return
 
     if not args.only_msa:
         # Run structure prediction
