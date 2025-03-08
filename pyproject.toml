@@ -14,12 +14,14 @@ classifiers = [
     "Topic :: Software Development :: Build Tools",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Unix Shell",
-    "Programming Language :: Perl",
     "Development Status :: 4 - Beta",
 ]
 
 [tool.poetry.scripts]
 flashfold = "flashfold.main:main"
+
+[tool.mypy]
+disable_error_code = ["import-untyped"]
 
 [[tool.poetry.source]]
 name = "testpypi"

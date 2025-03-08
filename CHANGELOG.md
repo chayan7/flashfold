@@ -3,10 +3,11 @@
 All notable changes to this project will be documented in this file.
 
 
-## [1.1.3] - 2025-03-07
+## [1.1.3] - 2025-03-09
 
 #### Added
 - Adds function to generate json file for AlphaFold3 input using FlashFold MSA.
+- Adds `mypy` for typing.
 
 #### Changed
 - Version number is updated.

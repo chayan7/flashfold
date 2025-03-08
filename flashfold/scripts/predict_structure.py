@@ -248,7 +248,7 @@ def predict_3d_structure(args) -> None:
                     # noinspection PyTypeChecker
                     print(hash_to_fasta[hash_id], file=fasta_file_out)
 
-    if is_fasta:
+    if is_fasta and sequence_database:
         # Run Jackhmmer
         unique_fasta_file_paths = list(query_hash_to_single_fasta_path.values())
 

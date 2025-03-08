@@ -28,3 +28,4 @@ dependencies:
       - requests~=2.32.3
       - tqdm~=4.66.5
       - py3Dmol
+      - mypy

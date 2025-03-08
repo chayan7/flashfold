@@ -8,7 +8,7 @@ from .json import load_json_file
 from collections import namedtuple
 
 
-A3M_Records = namedtuple("A3M_records", ["query_hash_to_seq", "hits_per_query"])
+A3M_Records = namedtuple("A3M_Records", ["query_hash_to_seq", "hits_per_query"])
 
 
 def has_good_coverage(sequence: str, coverage: float = 0.5) -> bool:
@@ -99,7 +99,7 @@ def make_alignment_pair(query_colon_hits: List[str], input_query_feats: Infile_f
 
     list_of_top_hit_list = []
     for query_hash in query_hashes:
-        top_hit_list = []
+        top_hit_list: List[str] = []
         for query_colon_hit in query_colon_hits:
             query_hash_value, hit_accession = query_colon_hit.split(":", 1)
             if query_hash == query_hash_value:

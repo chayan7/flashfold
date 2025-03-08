@@ -65,7 +65,7 @@ class Database:
         self.fasta_db = self._sequence_db()
         self.prot_hash_to_accession = self._prot_hash_to_accession()
         self.protein_to_gbks = self._protein_to_gbks()
-        self._protein_to_gbks_loaded = None
+        self._protein_to_gbks_loaded: Dict[str, List[str]] = {}
         self._protein_to_gbks_thread = threading.Thread(target=self._load_protein_to_gbks_in_background)
         self._protein_to_gbks_thread.start()
 
