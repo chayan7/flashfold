@@ -10,7 +10,8 @@ All notable changes to this project will be documented in this file.
 
 #### Changed
 - Version number is updated.
-- Python scripts have been relocated to the `tools` directory. 
+- Python scripts have been relocated to the `tools` directory.
+- Output file name will carry the input file name (without extension) as prefix.
 
 #### Fixed
 - NA

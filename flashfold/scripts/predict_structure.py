@@ -188,7 +188,7 @@ def predict_3d_structure(args) -> None:
     infile_features_json = JsonStructure()
 
     # Create a JsonStructure object to store the features required for structure prediction
-    fold_features = JsonStructure()
+    fold_features_json = JsonStructure()
 
     # Homology search Initialization
     query_hash_to_single_fasta_path = {}
@@ -196,8 +196,10 @@ def predict_3d_structure(args) -> None:
 
     for valid_file in valid_input_files.file_paths:
         valid_file_name = get_filename_without_extension(valid_file)
-        sub_out_dir_path = replace_char_from_string(valid_file_name, "_")
-        batch_out_dir_path = os.path.join(out_dir_path, sub_out_dir_path)
+        valid_file_name_updated = replace_char_from_string(valid_file_name, "_")
+        infile_features_json.add_entry(valid_file, "name", valid_file_name_updated)
+        fold_features_json.add_entry(valid_file, "name", valid_file_name_updated)
+        batch_out_dir_path = os.path.join(out_dir_path, valid_file_name_updated)
 
         if is_batch:
             parent_result_path = manage_output_path(batch_out_dir_path, overwrite)
@@ -206,19 +208,19 @@ def predict_3d_structure(args) -> None:
 
         # structure prediction out path
         structure_prediction_out_path = os.path.join(parent_result_path, "flashfold_structure")
-        fold_features.add_entry(valid_file, "structure_prediction_path", structure_prediction_out_path)
+        fold_features_json.add_entry(valid_file, "structure_prediction_path", structure_prediction_out_path)
 
         # AF3 JSON file out path
         if args.only_json:
             af3_json_file_out_path = os.path.join(parent_result_path, "flashfold_json")
-            fold_features.add_entry(valid_file, "af3_json_path", af3_json_file_out_path)
+            fold_features_json.add_entry(valid_file, "af3_json_path", af3_json_file_out_path)
 
         if not is_fasta:
             valid_a3m_file = valid_file
             is_monomer = is_a3m_monomer(valid_a3m_file)
-            fold_features.add_entry(valid_a3m_file, "is_monomer", is_monomer)
-            fold_features.add_entry(valid_a3m_file, "time_log", time_log_file)
-            fold_features.add_entry(valid_a3m_file, "input_msa", valid_a3m_file)
+            fold_features_json.add_entry(valid_a3m_file, "is_monomer", is_monomer)
+            fold_features_json.add_entry(valid_a3m_file, "time_log", time_log_file)
+            fold_features_json.add_entry(valid_a3m_file, "input_msa", valid_a3m_file)
 
         if is_fasta:
             valid_fasta_file = valid_file
@@ -292,22 +294,21 @@ def predict_3d_structure(args) -> None:
                 print(f"\n-- Error: No valid MSA records found for {os.path.basename(result_subdirectory)}")
                 return
 
-            filtered_a3m_path = os.path.join(result_subdirectory, "flashfold_filtered_msa")
-            create_new_directory(filtered_a3m_path)
+            filtered_a3m_output_dir = os.path.join(result_subdirectory, "flashfold_filtered_msa")
+            create_new_directory(filtered_a3m_output_dir)
+            a3m_file_name = each_fasta_features["name"]
+            filtered_a3m_file_path = os.path.join(filtered_a3m_output_dir, f"{a3m_file_name}.a3m")
             create_a3m_for_folding(homology_summary_json_file, combined_a3m_records, query_fasta_features,
-                                   filtered_a3m_path)
-            a3m_file_name = join_list_elements_by_character(query_fasta_features.accnrs, "-")
-            filtered_homology_search_output = os.path.join(filtered_a3m_path, f"{a3m_file_name}.a3m")
-
+                                   filtered_a3m_file_path)
             msa_end_log_text = f"Completed: MSA construction for {os.path.basename(result_subdirectory)} " \
                 if is_batch else f"Completed: MSA construction"
             update_time_log(time_log_file, msa_end_log_text, True)
 
             structure_prediction_out_path = os.path.join(result_subdirectory, "flashfold_structure")
-            fold_features.add_entry(each_fasta, "filtered_msa", filtered_homology_search_output)
-            fold_features.add_entry(each_fasta, "structure_prediction_path", structure_prediction_out_path)
-            fold_features.add_entry(each_fasta, "is_monomer", is_monomer)
-            fold_features.add_entry(each_fasta, "time_log", time_log_file)
+            fold_features_json.add_entry(each_fasta, "filtered_msa", filtered_a3m_file_path)
+            fold_features_json.add_entry(each_fasta, "structure_prediction_path", structure_prediction_out_path)
+            fold_features_json.add_entry(each_fasta, "is_monomer", is_monomer)
+            fold_features_json.add_entry(each_fasta, "time_log", time_log_file)
             #remove child msa path that contains msa per chain
             shutil.rmtree(alignment_path)
 
@@ -315,8 +316,8 @@ def predict_3d_structure(args) -> None:
         shutil.rmtree(temp_dir_path)
 
     if args.only_json:
-        for each_file in fold_features.get_data():
-            each_file_fold_features = fold_features.get_data()[each_file]
+        for each_file in fold_features_json.get_data():
+            each_file_fold_features = fold_features_json.get_data()[each_file]
             filtered_a3m_file = each_file_fold_features["filtered_msa"] if is_fasta \
                 else each_file_fold_features["input_msa"]
             af3_json_dir = each_file_fold_features["af3_json_path"]
@@ -324,18 +325,21 @@ def predict_3d_structure(args) -> None:
             json_start_log = f"Started: JSON file creation for {os.path.basename(os.path.dirname(af3_json_dir))} " \
                 if is_batch else f"Started: JSON file creation"
             update_time_log(time_log_file, json_start_log, True)
-            af3_json_file_name = f"{os.path.basename(filtered_a3m_file).replace('.a3m', '.json')}"
+            query_file_name = each_file_fold_features["name"]
+            af3_json_file_name = f"{query_file_name}.json"
             af3_json_file_path = os.path.join(af3_json_dir, af3_json_file_name)
             run_af3tools(filtered_a3m_file, af3_json_file_path)
             json_end_log = f"Completed: JSON file creation for {os.path.basename(os.path.dirname(af3_json_dir))} " \
                 if is_batch else f"Completed: JSON file creation"
             update_time_log(time_log_file, json_end_log, True)
+            if is_fasta and not args.only_msa:
+                shutil.rmtree(os.path.dirname(filtered_a3m_file))
         return
 
     if not args.only_msa:
         # Run structure prediction
-        for each_file in fold_features.get_data():
-            each_file_fold_features = fold_features.get_data()[each_file]
+        for each_file in fold_features_json.get_data():
+            each_file_fold_features = fold_features_json.get_data()[each_file]
             is_monomer = each_file_fold_features["is_monomer"]
             filtered_a3m_file = each_file_fold_features["filtered_msa"] if is_fasta \
                 else each_file_fold_features["input_msa"]

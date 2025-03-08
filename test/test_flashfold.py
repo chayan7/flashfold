@@ -133,7 +133,7 @@ def test_monomer_msa():
     )
     assert result.returncode == 0, f"{flashfold_sub} failed with error: {result.stderr}"
 
-    a3m_file = "test/output/fold-monomer/flashfold_filtered_msa/S1_seq_1.a3m"
+    a3m_file = "test/output/fold-monomer/flashfold_filtered_msa/monomer.a3m"
     assert file_has_content(a3m_file), f"Error: {flashfold_sub} with --only_msa"
     assert is_valid_protein_a3m(a3m_file), f"Error: {flashfold_sub} with --only_msa"
     assert not is_valid_protein_fasta(a3m_file), f"Error: {flashfold_sub} with --only_msa"
@@ -154,7 +154,7 @@ def test_multimer_msa():
     )
     assert result_msa.returncode == 0, f"{flashfold_sub} failed with error: {result_msa.stderr}"
 
-    a3m_file = "test/output/fold-heterodimer/flashfold_filtered_msa/S1_seq_1-S2_seq_2.a3m"
+    a3m_file = "test/output/fold-heterodimer/flashfold_filtered_msa/heterodimer.a3m"
     assert file_has_content(a3m_file), f"Error: {flashfold_sub} with --only_msa"
     assert is_valid_protein_a3m(a3m_file), f"Error: {flashfold_sub} with --only_msa"
 

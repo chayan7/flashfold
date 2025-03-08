@@ -171,7 +171,7 @@ def introduce_gap_in_subunit(subunit_seq: List[str]) -> List[List[str]]:
 
 
 def create_a3m_for_folding(summary_json: str, a3m_records: A3M_Records,
-                           query_fasta: Infile_feats, out_path: str) -> None:
+                           query_fasta: Infile_feats, output_a3m_file: str) -> None:
     """
     Create A3M files for folding.
 
@@ -179,7 +179,7 @@ def create_a3m_for_folding(summary_json: str, a3m_records: A3M_Records,
         summary_json (str): Path to the summary JSON file.
         a3m_records (A3M_Records): A named tuple of query hash to sequence and hits per query.
         query_fasta (Infile_feats): Input query features.
-        out_path (str): Output directory path.
+        output_a3m_file (str): Output file.
 
     Returns:
         None
@@ -249,14 +249,12 @@ def create_a3m_for_folding(summary_json: str, a3m_records: A3M_Records,
                     a3m_alignments.append(fasta_sequence.fasta)
                     a3m_alignment_hashes.add(fasta_sequence.hash)
 
-    concatenated_filename = join_list_elements_by_character(query_fasta.accnrs, "-")
-    concat_filepath = os.path.join(out_path, f"{concatenated_filename}.a3m")
-    with open(concat_filepath, "w") as con_out:
+    with open(output_a3m_file, "w") as con_out:
         # noinspection PyTypeChecker
         print(query_fasta.a3m_header, file=con_out)
         for seq_aln in a3m_alignments:
             # noinspection PyTypeChecker
             print(seq_aln.rstrip(), file=con_out)
     end_time = current_time()
-    print(f"-- {end_time} > Completed filtering MSA, check output at: \n\t'{concat_filepath}'\n")
+    print(f"-- {end_time} > Completed filtering MSA, check output at: \n\t'{output_a3m_file}'\n")
     return None
