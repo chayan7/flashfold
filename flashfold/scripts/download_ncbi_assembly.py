@@ -9,7 +9,7 @@ from subprocess import Popen, PIPE
 from typing import List, Dict
 import shutil
 import time
-from flashfold.utils import wget_file_from_url
+from flashfold.utils import wget_file_from_url, create_batches
 
 
 def summary_error_message(stderr: str, input_taxon: str) -> None:
@@ -85,30 +85,6 @@ def get_accessions_from_summary(summary_file: str) -> List[str]:
                 accession = line.split("\t")[0]
                 accessions.append(accession)
     return accessions
-
-
-def create_batches(main_set_of_items: List, max_items_per_batch: int) -> List:
-    """
-    Splits a list of items into smaller batches of a specified maximum size.
-
-    Args:
-        main_set_of_items (List): The list of items to be divided into batches.
-        max_items_per_batch (int): The maximum number of items allowed in each batch.
-
-    Returns:
-        List: A list of batches, where each batch is a list containing up to `max_items_per_batch` items.
-    """
-
-    batches: List = []
-    current_subset: List = []
-    for item in main_set_of_items:
-        current_subset.append(item)
-        if len(current_subset) == max_items_per_batch:
-            batches.append(current_subset)
-            current_subset = []
-    if current_subset:
-        batches.append(current_subset)
-    return batches
 
 
 def parse_source(source: str) -> str:

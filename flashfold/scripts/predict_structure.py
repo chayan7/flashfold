@@ -7,7 +7,7 @@ from typing import List, Dict, Tuple, Literal
 from collections import defaultdict
 from collections import namedtuple
 
-from flashfold.tools import run_jackhmmer, run_af3tools
+from flashfold.tools import run_homology_search, run_af3tools
 from flashfold.utils import is_valid_protein_fasta, is_valid_database_dir, manage_output_path, \
     join_list_elements_by_character, create_new_directory, is_valid_protein_a3m, is_a3m_monomer, \
     get_files_from_path_by_extension, run_colabfold, current_time, current_time_raw, update_time_log, \
@@ -166,7 +166,6 @@ def predict_3d_structure(args) -> None:
     initial_msg = f"-- FlashFold{log_text} analysis began at: {prediction_start_time}"
     update_time_log(time_log_file, initial_msg, False)
 
-    # Load the database if needed
     sequence_database = None
     if is_fasta:
         if not args.database:
@@ -249,14 +248,14 @@ def predict_3d_structure(args) -> None:
                     print(hash_to_fasta[hash_id], file=fasta_file_out)
 
     if is_fasta and sequence_database:
-        # Run Jackhmmer
+        # Run homology search
         unique_fasta_file_paths = list(query_hash_to_single_fasta_path.values())
 
         msa_start_log_text = f"Started: MSA construction for {len(valid_input_files.file_paths)} sequences" \
             if is_batch else f"Started: MSA construction"
 
         update_time_log(time_log_file, msa_start_log_text, True)
-        run_jackhmmer(unique_fasta_file_paths, sequence_database.fasta_db, args.threads, temp_dir_path)
+        run_homology_search(unique_fasta_file_paths, sequence_database.fasta_db, args.threads, temp_dir_path)
 
         # copy homology search output
         copy_alignment_files_commands = []

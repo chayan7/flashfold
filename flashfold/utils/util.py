@@ -392,3 +392,27 @@ def file_has_content(file_path: str) -> bool:
     Returns: True if it has content
     """
     return os.path.exists(file_path) and os.path.getsize(file_path) > 0
+
+
+def create_batches(main_set_of_items: List, max_items_per_batch: int) -> List:
+    """
+    Splits a list of items into smaller batches of a specified maximum size.
+
+    Args:
+        main_set_of_items (List): The list of items to be divided into batches.
+        max_items_per_batch (int): The maximum number of items allowed in each batch.
+
+    Returns:
+        List: A list of batches, where each batch is a list containing up to `max_items_per_batch` items.
+    """
+
+    batches: List[List] = []
+    sub_batch: List = []
+    for item in main_set_of_items:
+        sub_batch.append(item)
+        if len(sub_batch) == max_items_per_batch:
+            batches.append(sub_batch)
+            sub_batch = []
+    if sub_batch:
+        batches.append(sub_batch)
+    return batches

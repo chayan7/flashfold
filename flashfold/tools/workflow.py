@@ -5,9 +5,9 @@ from flashfold.utils import run_jobs_in_parallel, run_single_job, get_sequence_l
 min_jackhmmer_hits = 1000
 
 
-def run_jackhmmer(fasta_files: list, database_fasta: str, provided_cpu: int, out_path: str) -> None:
+def run_homology_search(fasta_files: list, database_fasta: str, provided_cpu: int, out_path: str) -> None:
     """
-    Run jackhmmer for homology searching.
+    Run homology searching.
 
     Args:
         fasta_files (list): List of paths to FASTA files.
