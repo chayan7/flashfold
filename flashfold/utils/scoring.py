@@ -99,11 +99,11 @@ def calc_pdockq(structure_bio: Structure, cutoff_score: float, diso_cut_1=50, di
             for res1 in chains[c]:
                 for res2 in chains[d]:
                     test = False
-                    for i in res1:
+                    for atom1 in res1:
                         if test:
                             break
-                        for j in res2:
-                            dist = np.linalg.norm(i.coord - j.coord)
+                        for atom2 in res2:
+                            dist = np.linalg.norm(atom1.coord - atom2.coord)
                             if dist < cutoff_score:
                                 interface_residues1.append(res1.id[1])
                                 interface_residues2.append(res2.id[1] + max_len * d)
@@ -136,7 +136,11 @@ def calc_pdockq(structure_bio: Structure, cutoff_score: float, diso_cut_1=50, di
                 b += res['CA'].get_bfactor()
                 k += 1
         length_list += [i1]
-        num_res_list += [if1.shape[0] + if2.shape[0]]
+        if if1 is not None and if2 is not None:
+            num_res_list += [if1.shape[0] + if2.shape[0]]
+        else:
+            print("-- Warning: Interface residues not found")
+            num_res_list += [0]
         if_plddt_list += [b / k]
         plddt_list += [b1 / i1]
         num_diso_list += [num_diso1]

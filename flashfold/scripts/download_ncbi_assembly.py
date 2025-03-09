@@ -9,7 +9,7 @@ from subprocess import Popen, PIPE
 from typing import List, Dict
 import shutil
 import time
-from flashfold.utils import wget_file_from_url
+from flashfold.utils import wget_file_from_url, create_batches
 
 
 def summary_error_message(stderr: str, input_taxon: str) -> None:
@@ -87,29 +87,6 @@ def get_accessions_from_summary(summary_file: str) -> List[str]:
     return accessions
 
 
-def create_batches(main_set_of_items: list, max_items_per_batch: int) -> list:
-    """
-    Splits a list of items into smaller batches of a specified maximum size.
-
-    Args:
-        main_set_of_items (list): The list of items to be divided into batches.
-        max_items_per_batch (int): The maximum number of items allowed in each batch.
-
-    Returns:
-        list: A list of batches, where each batch is a list containing up to `max_items_per_batch` items.
-    """
-    subsets: list = []
-    current_subset: list = []
-    for item in main_set_of_items:
-        current_subset.append(item)
-        if len(current_subset) == max_items_per_batch:
-            subsets.append(current_subset)
-            current_subset = []
-    if current_subset:
-        subsets.append(current_subset)
-    return subsets
-
-
 def parse_source(source: str) -> str:
     """
     Parses the source parameter and returns the corresponding source database name.
@@ -169,29 +146,33 @@ def process_command_batch(command_batch: List[str]) -> Dict[str, List[str]]:
     Returns:
         Dict[str, List[str]]: A dictionary with keys 'processed' and 'failed' containing lists of commands.
     """
-    failed_commands = []
-    processed_commands = []
+    failed_commands: List[str] = []
+    processed_commands: List[str] = []
     process_list = [Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE) for cmd in command_batch]
     for process in process_list:
         process.communicate()
         if process.returncode != 0:
-            print(f"\t\tError while download: {process.args}")
-            failed_commands.append(process.args)
+            failed_process = str(process.args)
+            print(f"\t\tError while download: {failed_process}")
+            failed_commands.append(failed_process)
         else:
-            processed_commands.append(process.args)
+            successful_process = str(process.args)
+            processed_commands.append(successful_process)
 
     # retry failed commands
-    failed_commands_after_retry = []
+    failed_commands_after_retry: List[str] = []
     for failed_command in failed_commands:
         print(f"\t\tRetrying failed attempt: {failed_command}")
         time.sleep(10)
         process = Popen(failed_command, shell=True, stdout=PIPE, stderr=PIPE)
         process.communicate()
         if process.returncode != 0:
-            print(f"\t\tError while retrying download: {process.args}")
-            failed_commands_after_retry.append(process.args)
+            failed_process = str(process.args)
+            print(f"\t\tError while retrying download: {failed_process}")
+            failed_commands_after_retry.append(failed_process)
         else:
-            processed_commands.append(process.args)
+            successful_process = str(process.args)
+            processed_commands.append(successful_process)
 
     return {'processed': processed_commands, 'failed': failed_commands_after_retry}
 

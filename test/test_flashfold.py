@@ -133,7 +133,7 @@ def test_monomer_msa():
     )
     assert result.returncode == 0, f"{flashfold_sub} failed with error: {result.stderr}"
 
-    a3m_file = "test/output/fold-monomer/flashfold_filtered_msa/S1_seq_1.a3m"
+    a3m_file = "test/output/fold-monomer/flashfold_filtered_msa/monomer.a3m"
     assert file_has_content(a3m_file), f"Error: {flashfold_sub} with --only_msa"
     assert is_valid_protein_a3m(a3m_file), f"Error: {flashfold_sub} with --only_msa"
     assert not is_valid_protein_fasta(a3m_file), f"Error: {flashfold_sub} with --only_msa"
@@ -154,9 +154,38 @@ def test_multimer_msa():
     )
     assert result_msa.returncode == 0, f"{flashfold_sub} failed with error: {result_msa.stderr}"
 
-    a3m_file = "test/output/fold-heterodimer/flashfold_filtered_msa/S1_seq_1-S2_seq_2.a3m"
+    a3m_file = "test/output/fold-heterodimer/flashfold_filtered_msa/heterodimer.a3m"
     assert file_has_content(a3m_file), f"Error: {flashfold_sub} with --only_msa"
     assert is_valid_protein_a3m(a3m_file), f"Error: {flashfold_sub} with --only_msa"
+
+
+def test_fold_json_batch():
+    flashfold_sub = "fold"
+    # testing fold for monomer with json output
+    result = subprocess.run(
+        ["flashfold", flashfold_sub,
+         "-q", "test/input/msa/",
+         "-d", "test/output/custom_database/",
+         "-o", "test/output/fold-json/",
+         "-t", "1",
+         "--batch",
+         "--only_json"],
+        capture_output=True,
+        text=True
+    )
+    monomer_json_file = "test/output/fold-json/monomer/flashfold_json/monomer.json"
+    heterodimer_json_file = "test/output/fold-json/heterodimer/flashfold_json/heterodimer.json"
+    loaded_monomer = load_json_file(monomer_json_file)
+    monomer_paired_msa_value = loaded_monomer['sequences'][0]['protein']['pairedMsa']
+    loaded_heterodimer = load_json_file(heterodimer_json_file)
+    heterodimer_paired_msa_value_1 = loaded_heterodimer['sequences'][0]['protein']['pairedMsa']
+    heterodimer_paired_msa_value_2 = loaded_heterodimer['sequences'][1]['protein']['pairedMsa']
+    assert result.returncode == 0, f"{flashfold_sub} failed with error: {result.stderr}"
+    assert file_has_content(monomer_json_file), f"Error: {flashfold_sub} - batch with json output"
+    assert file_has_content(heterodimer_json_file), f"Error: {flashfold_sub} - batch with json output"
+    assert monomer_paired_msa_value == "", f"Error: {flashfold_sub} - batch with json output"
+    assert heterodimer_paired_msa_value_1 != "", f"Error: {flashfold_sub} - batch with json output"
+    assert heterodimer_paired_msa_value_2 != "", f"Error: {flashfold_sub} - batch with json output"
 
 
 def test_fold_batch():

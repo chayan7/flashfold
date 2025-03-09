@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.1.3] - 2025-03-09
+
+#### Added
+- Adds function to generate json file for AlphaFold3 input using FlashFold MSA.
+- Adds `mypy` for typing.
+
+#### Changed
+- Version number is updated.
+- Python scripts have been relocated to the `tools` directory.
+- Output file name will carry the input file name (without extension) as prefix.
+
+#### Fixed
+- NA
+
+#### Removed
+- NA
+
+
 ## [1.1.2] - 2025-03-04
 
 #### Added

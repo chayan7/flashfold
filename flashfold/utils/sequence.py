@@ -4,7 +4,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 # noinspection PyPackageRequirements
 from Bio.SeqRecord import SeqRecord
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from collections import namedtuple
 from .util import calculate_md5_hash, join_list_elements_by_character, replace_char_from_string, is_valid_path
 
@@ -12,7 +12,7 @@ from .util import calculate_md5_hash, join_list_elements_by_character, replace_c
 Sequence = namedtuple('Sequence', ['hash', 'fasta'])
 Infile_feats = namedtuple('Infile_feats', ['accnrs', 'seqs', 'chain_accnrs', 'chain_seqs',
                                            'chain_seq_hashes', 'a3m_header', 'hash_to_fasta', 'empty_subunits'])
-Chain = namedtuple('Subunit', ['subunits', 'frequency', 'sequence'])
+Chain = namedtuple('Chain', ['subunits', 'frequency', 'sequence'])
 Fasta_record = namedtuple('Fasta_record', ['accession', 'fasta'])
 
 
@@ -232,19 +232,19 @@ def get_chain_from_sequence(sequence_list: List[str]) -> Chain:
     """
     uniq_sequence_set = set()
     abundances = []
-    seq_to_abundance = []
+    seq_to_abundance: List[Tuple[str, int]] = []
     for seq in sequence_list:
         if seq not in uniq_sequence_set:
             abundance = sequence_list.count(seq)
             abundances.append(abundance)
             seq_to_abundance.append(
-                [seq, abundance]
+                (seq, abundance)
             )
             uniq_sequence_set.add(seq)
 
     min_abundance = min(abundances)
 
-    subunits = []
+    subunits: List[str] = []
     for seq, abundance in seq_to_abundance:
         rational_abundance = round(abundance/min_abundance)
         for i in range(rational_abundance):

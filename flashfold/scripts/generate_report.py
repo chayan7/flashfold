@@ -95,6 +95,11 @@ def get_length_stoichiometry_from_a3m(file_path: str) -> Tuple[str, str]:
             if line.startswith('#'):
                 length = line[1:].split()[0].replace(',', ':')
                 stoichiometry = line[1:].split()[1].replace(',', ':')
+
+    if length is None or stoichiometry is None:
+        print(f"Error: Length and stoichiometry not found in the file '{file_path}'.")
+        sys.exit()
+
     return length, stoichiometry
 
 
@@ -131,9 +136,7 @@ def get_summary_table_rows_from_result_path(path_to_results: str) -> List[List[s
                 query_id = model_name.split('_unrelaxed_rank_001_')[0]
                 a3m_file = os.path.join(root, f"{query_id}.a3m")
                 q_length, q_stoichiometry = get_length_stoichiometry_from_a3m(a3m_file)
-                query_id_list = [remove_query_prefix(query) for query in
-                                 model_name.split('_unrelaxed_rank_001_')[0].split('-')]
-                row[query_index] = ':'.join(query_id_list)
+                row[query_index] = query_id
                 row[length_index] = q_length
                 row[stoichiometry_index] = q_stoichiometry
                 model_path = os.path.join(root, model_name)

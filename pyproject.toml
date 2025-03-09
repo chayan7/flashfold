@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "flashfold"
-version = "1.1.2"
+version = "1.1.3"
 description = "A tool for protein and protein complex structure prediction."
 repository = "https://github.com/chayan7/flashfold"
 authors = ["chayan7 <chayan_saha@outlook.com>"]
@@ -14,12 +14,14 @@ classifiers = [
     "Topic :: Software Development :: Build Tools",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Unix Shell",
-    "Programming Language :: Perl",
     "Development Status :: 4 - Beta",
 ]
 
 [tool.poetry.scripts]
 flashfold = "flashfold.main:main"
+
+[tool.mypy]
+disable_error_code = ["import-untyped"]
 
 [[tool.poetry.source]]
 name = "testpypi"

@@ -1,0 +1,334 @@
+# This code is collected from: https://github.com/cddlab/alphafold3_tools/blob/main/alphafold3tools/msatojson.py
+# And changed accordingly to fit the project requirements.
+
+
+import concurrent.futures
+import ujson
+import os
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Dict, Tuple, Any
+
+
+def int_id_to_str_id(num: int) -> str:
+    """Encodes a number as a string, using reverse spreadsheet style naming.
+    This block is cited from
+    https://github.com/google-deepmind/alphafold3/blob/main/src/alphafold3/structure/mmcif.py#L40
+
+    Args:
+      num: A positive integer.
+
+    Returns:
+      A string that encodes the positive integer using reverse spreadsheet style,
+      naming e.g. 1 = A, 2 = B, ..., 27 = AA, 28 = BA, 29 = CA, ... This is the
+      usual way to encode chain IDs in mmCIF files.
+    """
+    if num <= 0:
+        raise ValueError(f"Only positive integers allowed, got {num}.")
+
+    num = num - 1  # 1-based indexing.
+    output = []
+    while num >= 0:
+        output.append(chr(num % 26 + ord("A")))
+        num = num // 26 - 1
+    return "".join(output)
+
+
+@dataclass
+class Seq:
+    name: str
+    sequence: str
+
+
+def get_residuelens_stoichiometries(lines) -> Tuple[List[int], List[int]]:
+    """Get residue lengths and stoichiometries from msa file.
+    Args:
+        lines: List[str]
+            Lines of input msa file
+    Returns:
+        residue_lens: List[int]
+            Residue lengths of each polypeptide chain
+        stoichiometries: List[int]
+            Stoichiomerties of each polypeptide chain
+    """
+    if lines[0].startswith("#"):
+        residue_lens_, stoichiometries_ = lines[0].split("\t")
+        residue_lens = list(map(int, residue_lens_.lstrip("#").split(",")))
+        stoichiometries = list(map(int, stoichiometries_.split(",")))
+    else:
+        # If the first line does not start with '#',
+        # get the residue length from the first sequence.
+        # Always assume a monomer prediction.
+        if not lines[0].startswith(">"):
+            raise ValueError(
+                "The first line of the input MSA file must start with '#' or '>'."
+            )
+        residue_lens = [len(lines[1].strip())]
+        stoichiometries = [1]
+    return residue_lens, stoichiometries
+
+
+def split_a3msequences(residue_lens, line) -> List[str]:
+    """Split a3m sequences into a list of a3m sequences.
+    Note: The a3m-format MSA file represents inserted residues with lowercase.
+    The first line (starting with '#') of the MSA file contains residue lengths
+    and stoichiometries of each polypeptide chain.
+    From the second line, the first sequence is the query.
+    After this, the paired MSA blocks are followed by the unpaired MSA.
+    Args:
+        residue_lens: list[int]
+            Residue lengths of each polypeptide chain
+        line: str
+            A3M sequences
+    Returns:
+        a3msequences: list[str]
+            A3M sequences, len(a3msequences) should be the same as len(residue_lens).
+    """
+    a3msequences = [""] * len(residue_lens)
+    i = 0
+    count = 0
+    current_residue = []
+
+    for char in line:
+        # checking for the null character
+        if not char == chr(0):
+            current_residue.append(char)
+            if char == "-" or char.isupper():
+                count += 1
+            if count == residue_lens[i]:
+                a3msequences[i] = "".join(current_residue)
+                current_residue = []
+                count = 0
+                i += 1
+                if i == len(residue_lens):
+                    break
+
+    if current_residue and i < len(residue_lens):
+        a3msequences[i] = "".join(current_residue)
+
+    return a3msequences
+
+
+def get_paired_and_unpaired_msa(
+    lines: List[str], residue_lens: List[int], cardinality: int
+) -> Tuple[List[List[Seq]], List[List[Seq]]]:
+    """Get paired and unpaired MSAs from input MSA file.
+    Args:
+        lines: List[str]
+            Lines of input MSA file
+        residue_lens: List[int]
+            Residue lengths of each polypeptide chain
+        cardinality: int
+            Number of polypeptide chains
+    Returns:
+        pairedmsas: List[List[Seq]]
+            Paired MSAs, len(pairedmsa) should be the cardinality.
+            If cardinality is 1, pairedmsas returns [[Seq("", "")]].
+        unpairedmsas: List[List[Seq]]
+            Unpaired MSAs, len(unpairedmsa) should be the cardinality.
+    """
+    pairedmsas: List[List[Seq]] = [[] for _ in range(cardinality)]
+    unpairedmsas: List[List[Seq]] = [[] for _ in range(cardinality)]
+    pairedflag = False
+    unpairedflag = False
+    seen = False
+    seqnames_seen = []
+    query_seqnames = [int(101 + i) for i in range(cardinality)]
+    chain = -1
+    start = 1 if lines[0].startswith("#") else 0
+    seqname = ""
+    for line in lines[start:]:
+        if line.startswith(">"):
+            if line not in seqnames_seen:
+                seqnames_seen.append(line)
+            else:
+                seen = True
+                continue
+            if cardinality > 1 and line.startswith(
+                ">" + "\t".join(map(str, query_seqnames)) + "\n"
+            ):
+                pairedflag = True
+                unpairedflag = False
+            elif any(line.startswith(f">{seq}\n") for seq in query_seqnames):
+                pairedflag = False
+                unpairedflag = True
+                chain += 1
+            seqname = line
+        else:
+            if seen:
+                seen = False
+                continue
+            if pairedflag:
+                a3mseqs = split_a3msequences(residue_lens, line)
+                for i in range(cardinality):
+                    pairedmsas[i].append(Seq(seqname, a3mseqs[i]))
+
+            elif unpairedflag:
+                a3mseqs = split_a3msequences(residue_lens, line)
+                for i in range(cardinality):
+                    # Remove all-gapped sequences
+                    if a3mseqs[i] == "-" * residue_lens[i]:
+                        continue
+                    unpairedmsas[i].append(Seq(seqname, a3mseqs[i]))
+            else:
+                raise ValueError("Flag must be either paired or unpaired.")
+    return pairedmsas, unpairedmsas
+
+
+def convert_msas_to_str(msas: List[Seq]) -> str:
+    """convert MSAs to str format for AlphaFold3 input JSON file."""
+    return "" if msas == [] else "\n".join(f"{seq.name}{seq.sequence}" for seq in msas) + "\n"
+
+
+def generate_input_json_content(
+    name: str,
+    cardinality: int,
+    stoichiometries: List[int],
+    pairedmsas: List[List[Seq]],
+    unpairedmsas: List[List[Seq]],
+) -> str:
+    """generate AlphaFold3 input JSON file.
+
+    Args:
+        name (str): Name of the protein complex.
+                    Used for the name field in the JSON file.
+        cardinality (int): The number of distinct polypeptide chains.
+        stoichiometries (List[int]): Stoichiometries of each polypeptide chain.
+        pairedmsas (List[List[Seq]]): Paired MSAs.
+        unpairedmsas (List[List[Seq]]): Unpaired MSAs.
+    Returns:
+        str: JSON string for AlphaFold3 input file.
+    """
+    sequences: List[Dict] = []
+    chain_id_count = 0
+    null = None
+    for i in range(cardinality):
+        # unpairedmsa[i][0] is more appropriate than pairedmsa[i][0].
+        query_seq = unpairedmsas[i][0].sequence
+        chain_ids = [
+            int_id_to_str_id(chain_id_count + j + 1) for j in range(stoichiometries[i])
+        ]
+        chain_id_count += stoichiometries[i]
+        sequences.append(
+            {
+                "protein": {
+                    "id": chain_ids,
+                    "sequence": query_seq,
+                    "modifications": [],
+                    "unpairedMsa": convert_msas_to_str(unpairedmsas[i]),
+                    "pairedMsa": convert_msas_to_str(pairedmsas[i]),
+                    "templates": [],
+                }
+            }
+        )
+
+    content_to_dump = {
+            "dialect": "alphafold3",
+            "version": 1,
+            "name": f"{name}",
+            "sequences": sequences,
+            "modelSeeds": [1],
+            "bondedAtomPairs": null,
+            "userCCD": null,
+        }
+
+    return ujson.dumps(content_to_dump, indent=4)
+
+
+def write_input_json_file(
+    inputmsafile: str | Path,
+    name: str,
+    outputjsonfile: str | Path,
+) -> None:
+    """Write AlphaFold3 input JSON file from a3m-format MSA file.
+
+    Args:
+        inputmsafile (str): Input MSA file path.
+        name (str): Name of the protein complex.
+                    Used for the name field in the JSON file.
+        outputjsonfile (str): Output file path.
+    """
+    with open(inputmsafile, "r") as f:
+        lines = f.readlines()
+    residue_lens, stoichiometries = get_residuelens_stoichiometries(lines)
+    if len(residue_lens) != len(stoichiometries):
+        raise ValueError("Length of residue_lens and stoichiometries must be the same.")
+    cardinality = len(residue_lens)
+    print(f"\t ∞ Residue lengths: {residue_lens}")
+    print(f"\t ∞ Stoichiometries: {stoichiometries}")
+    pairedmsas, unpairedmsas = get_paired_and_unpaired_msa(
+        lines, residue_lens, cardinality
+    )
+    content = generate_input_json_content(
+        name=f"{name}",
+        cardinality=cardinality,
+        stoichiometries=stoichiometries,
+        pairedmsas=pairedmsas,
+        unpairedmsas=unpairedmsas,
+    )
+    with open(outputjsonfile, "w") as f:
+        f.write(content)
+    print(f"\t ∞ Output file: '{outputjsonfile}'")
+
+
+def process_a3m_file(a3m_file: Any, output_dir: Path) -> None:
+    name = Path(a3m_file).stem
+    output_file = os.path.join(output_dir, f"{name}.json")
+    write_input_json_file(a3m_file, name, output_file)
+
+
+def main():
+    parser = ArgumentParser(
+        formatter_class=ArgumentDefaultsHelpFormatter,
+        description="Converts a3m-format MSA file to AlphaFold3 input JSON file.",
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        help="Input A3M file or directory containing A3M files. e.g. 1bjp.a3m",
+        type=str,
+        required=True,
+    )
+    parser.add_argument(
+        "-n",
+        "--name",
+        help="Name of the protein complex.",
+        type=str,
+        default="",
+    )
+    parser.add_argument(
+        "-o", "--out", help="Output directory or JSON file.", type=str, required=True
+    )
+    args = parser.parse_args()
+    # Default name is the input file name without extension
+    if args.name == "":
+        args.name = os.path.splitext(os.path.basename(args.input))[0]
+    input_path = Path(args.input)
+    if not input_path.exists():
+        raise FileNotFoundError(f"{input_path} does not exist.")
+    out_path = Path(args.out)
+    if input_path.is_dir():
+        if out_path.suffix == ".json":
+            raise ValueError(
+                "Now the input is directory, so output name must be a directory."
+            )
+        out_path.mkdir(parents=True, exist_ok=True)
+        a3m_files = list(input_path.glob("*.a3m"))
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [
+                executor.submit(process_a3m_file, a3m_file, out_path)
+                for a3m_file in a3m_files
+            ]
+            concurrent.futures.wait(futures)
+    else:
+        name = input_path.stem
+        if input_path.suffix != ".a3m":
+            raise ValueError("Input file must have .a3m extension.")
+        if out_path.suffix != ".json":
+            raise ValueError("Output file must have .json extension.")
+        write_input_json_file(args.input, name, out_path)
+
+
+if __name__ == "__main__":
+    main()

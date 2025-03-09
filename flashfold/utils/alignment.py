@@ -3,55 +3,12 @@ import itertools
 from typing import List, Dict, Optional
 from .util import get_filename_without_extension, join_list_elements_by_character, current_time
 from .sequence import Sequence, Infile_feats, get_records, combine_sequences, \
-    combine_gappy_sequences, make_hash_fasta_sequence, get_sequence_length_from_single_fasta
+    combine_gappy_sequences, make_hash_fasta_sequence
 from .json import load_json_file
-from .execute import run_jobs_in_parallel
 from collections import namedtuple
 
 
-A3M_Records = namedtuple("A3M_records", ["query_hash_to_seq", "hits_per_query"])
-min_jackhmmer_hits = 1000
-
-
-def run_jackhmmer(fasta_files: list, database_fasta: str, provided_cpu: int, out_path: str) -> None:
-    """
-    Run jackhmmer for homology searching.
-
-    Args:
-        fasta_files (list): List of paths to FASTA files.
-        database_fasta (str): Path to the database FASTA file.
-        provided_cpu (int): Number of CPU cores to use.
-        out_path (str): Output directory path.
-
-    Returns:
-        None
-    """
-    current_file_dir = os.path.dirname(os.path.abspath(__file__))
-    reformat_script = os.path.join(current_file_dir, "reformat.py")
-    deduplicate_script = os.path.join(current_file_dir, "deduplicate.py")
-    combined_commands = []
-    cpu_per_job = min(8, provided_cpu)
-    for fasta_file in fasta_files:
-        fasta_seq_length = get_sequence_length_from_single_fasta(fasta_file)
-        fasta_basename = os.path.basename(fasta_file)
-        sto_file_name = f"{os.path.splitext(fasta_basename)[0]}.sto"
-        a3m_file_name = f"{os.path.splitext(fasta_basename)[0]}.a3m"
-        fas_file_name = f"{os.path.splitext(fasta_basename)[0]}.fas"
-        diverse_hits_file_name = f"{os.path.splitext(fasta_basename)[0]}.tsv"
-        sto_file_path = os.path.join(os.path.abspath(out_path), sto_file_name)
-        a3m_file_path = os.path.join(os.path.abspath(out_path), a3m_file_name)
-        fas_file_path = os.path.join(os.path.abspath(out_path), fas_file_name)
-        diverse_hits_file_path = os.path.join(os.path.abspath(out_path), diverse_hits_file_name)
-        sto_command = ("jackhmmer --noali --F1 0.0005 --F2 0.00005 --F3 0.0000005 --incE 0.0001 -E 0.0001 -N 1 "
-                       "-o /dev/null --cpu %s -A %s %s %s" % (cpu_per_job, sto_file_path, fasta_file, database_fasta))
-        reformat_sto_command = ("python3 %s %s --output_a3m %s --output_fas %s"
-                                % (reformat_script, sto_file_path, a3m_file_path, fas_file_path))
-        deduplicate_command = ("python3 %s %s --query_length %s --min_sequences %s --output %s --threads %s"
-                                % (deduplicate_script, fas_file_path, fasta_seq_length, min_jackhmmer_hits,
-                                   diverse_hits_file_path, cpu_per_job))
-        combined_command = f"{sto_command} && {reformat_sto_command} && {deduplicate_command}"
-        combined_commands.append(combined_command)
-    run_jobs_in_parallel(provided_cpu, cpu_per_job, combined_commands, "Homology searching")
+A3M_Records = namedtuple("A3M_Records", ["query_hash_to_seq", "hits_per_query"])
 
 
 def has_good_coverage(sequence: str, coverage: float = 0.5) -> bool:
@@ -99,7 +56,7 @@ def get_combined_a3m_records(a3m_files: List[str], tsv_files: List[str],
     query_hash_colon_hit_to_a3m = {}
     hit_count_per_query = []
     for query_hash in query_hashes:
-        count = -1  # Because the first hit is the query itself
+        count = 0
         for a3m_file in a3m_files:
             a3m_file_without_extension = get_filename_without_extension(a3m_file)
             a3m_query_hash = a3m_file_without_extension.split("_", 1)[0]
@@ -142,7 +99,7 @@ def make_alignment_pair(query_colon_hits: List[str], input_query_feats: Infile_f
 
     list_of_top_hit_list = []
     for query_hash in query_hashes:
-        top_hit_list = []
+        top_hit_list: List[str] = []
         for query_colon_hit in query_colon_hits:
             query_hash_value, hit_accession = query_colon_hit.split(":", 1)
             if query_hash == query_hash_value:
@@ -214,7 +171,7 @@ def introduce_gap_in_subunit(subunit_seq: List[str]) -> List[List[str]]:
 
 
 def create_a3m_for_folding(summary_json: str, a3m_records: A3M_Records,
-                           query_fasta: Infile_feats, out_path: str) -> None:
+                           query_fasta: Infile_feats, output_a3m_file: str) -> None:
     """
     Create A3M files for folding.
 
@@ -222,7 +179,7 @@ def create_a3m_for_folding(summary_json: str, a3m_records: A3M_Records,
         summary_json (str): Path to the summary JSON file.
         a3m_records (A3M_Records): A named tuple of query hash to sequence and hits per query.
         query_fasta (Infile_feats): Input query features.
-        out_path (str): Output directory path.
+        output_a3m_file (str): Output file.
 
     Returns:
         None
@@ -292,14 +249,12 @@ def create_a3m_for_folding(summary_json: str, a3m_records: A3M_Records,
                     a3m_alignments.append(fasta_sequence.fasta)
                     a3m_alignment_hashes.add(fasta_sequence.hash)
 
-    concatenated_filename = join_list_elements_by_character(query_fasta.accnrs, "-")
-    concat_filepath = os.path.join(out_path, f"{concatenated_filename}.a3m")
-    with open(concat_filepath, "w") as con_out:
+    with open(output_a3m_file, "w") as con_out:
         # noinspection PyTypeChecker
         print(query_fasta.a3m_header, file=con_out)
         for seq_aln in a3m_alignments:
             # noinspection PyTypeChecker
             print(seq_aln.rstrip(), file=con_out)
     end_time = current_time()
-    print(f"-- {end_time} > Completed filtering MSA, check output at: \n\t'{concat_filepath}'\n")
+    print(f"-- {end_time} > Completed filtering MSA, check output at: \n\t'{output_a3m_file}'\n")
     return None

@@ -51,7 +51,7 @@ def run_jobs_in_parallel(thread_count: int, threads_per_job: int,  jobs: List, j
             None
     """
     stopped = threading.Event()
-    q = Queue()
+    q: Queue = Queue()
 
     if job_name.strip() == "":
         print("-- Error: No job name found for run_jobs_in_parallel.")
