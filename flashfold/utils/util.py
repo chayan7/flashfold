@@ -242,11 +242,12 @@ def get_files_from_path_by_extension(path: str, extension: str) -> list:
     Get a list of files with a specified extension from a given path.
     """
     real_path = os.path.realpath(path)
-    all_contents_in_path = glob.glob(os.path.join(real_path, "*"))
     file_list = []
-    for potential_file in all_contents_in_path:
-        if os.path.isfile(potential_file) and has_desired_file_extensions(potential_file, [extension]):
-            file_list.append(potential_file)
+    for root, _, files in os.walk(real_path):
+        for file in files:
+            if file.endswith(extension):
+                file_path = os.path.join(root, file)
+                file_list.append(file_path)
     return file_list
 
 

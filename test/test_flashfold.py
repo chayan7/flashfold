@@ -161,7 +161,7 @@ def test_multimer_msa():
 
 def test_fold_json_batch():
     flashfold_sub = "fold"
-    # testing fold for monomer with json output
+    # testing fold for batch json output
     result = subprocess.run(
         ["flashfold", flashfold_sub,
          "-q", "test/input/msa/",
