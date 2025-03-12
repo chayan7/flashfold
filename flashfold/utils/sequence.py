@@ -122,14 +122,15 @@ def is_valid_protein_fasta(file_path: str) -> bool:
 
         id_count = 0
         for i, line in enumerate(lines):
-            line = line.strip()
-            if line.startswith('>'):
-                if len(line) > 1:
-                    id_count += 1
-            elif not is_protein_sequence(line):
-                raise ValueError(
-                    f"Invalid sequence character(s) found in line {i + 1} of the input protein FASTA file."
-                    f"\nCheck: {file_path}")
+            rstrip_line = line.rstrip()
+            if rstrip_line != "":
+                if rstrip_line.startswith('>'):
+                    if len(rstrip_line) > 1:
+                        id_count += 1
+                elif not is_protein_sequence(rstrip_line):
+                    raise ValueError(
+                        f"Invalid sequence character(s) found in line {i + 1} of the input protein FASTA file."
+                        f"\nCheck: {file_path}")
 
         if id_count == 0:
             raise ValueError(f"No valid protein IDs found in the file.\nCheck: {file_path}")

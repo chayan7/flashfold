@@ -1,6 +1,6 @@
 import argparse
 from flashfold.scripts import create_protein_db_from_gbk, download_database_from_cloud, predict_3d_structure, \
-    extend_main_sequence_db, download_ncbi_data, parse_formats, make_summary_report
+    extend_main_sequence_db, download_ncbi_data, parse_formats, make_summary_report, make_json_with_ligand
 from flashfold.utils import is_zero_or_pos_int, is_pos_int
 
 
@@ -89,7 +89,10 @@ def main() -> None:
                            help="path that will contain output.")
 
     # command fold parser
-    desc_fold = ''' Predict structure from FASTA sequence. '''
+    desc_fold = ''' Predict structure from FASTA sequence or MSA file in A3M format. FlashFold by default uses 
+    AlphaFold2 models for structure prediction. Optionally, it is possible to generate JSON file that can be 
+    used as AlphaFold3 input. The JSON file will contain the FlashFold predicted MSA information, therefore the 
+    homology detection steps in AlphaFold3 will be skipped. '''
     fold = subparsers.add_parser('fold', description=desc_fold)
     fold.add_argument("-q", "--query", metavar="<FILE_In|File_Dir>", required=True,
                       help="path to FASTA/A3M file(s)")
@@ -101,7 +104,7 @@ def main() -> None:
                       help="number of threads. Only utilized when query is a path to FASTA file(s) (default: 16)")
     fold.add_argument("--batch", action="store_true", default=False,
                       help="process multiple queries (default: False). If set, --query/-q should be the path to a "
-                           "directory containing FASTA files.")
+                           "directory containing FASTA/A3M files.")
     fold.add_argument("--only_msa", action="store_true", default=False,
                       help="does not predict structures but only produces MSA for given query (default: False)")
     fold.add_argument("--only_json", action="store_true", default=False,
@@ -128,6 +131,36 @@ def main() -> None:
                            "(default: 10.0)")
     fold.add_argument("--calc_extra_ptm", action="store_true", default=False,
                       help="Calculates extra PTM scores (default: False)")
+
+    # command ligand parser
+    desc_ligand = ''' Add or remove ligands in JSON files. Additionally, MSA files (A3M format) can also be used to add 
+    ligands. The final output will be a JSON file, that can be used as input for AlphaFold3. '''
+    ligand = subparsers.add_parser('ligand', description=desc_ligand)
+    ligand.add_argument("-i", "--input", type=str, metavar="<FILE_In|File_Dir>", required=True,
+                        help="path to the predicted A3M or JSON file(s)")
+    ligand.add_argument("-o", "--output", type=str, metavar="<Output_Dir>", required=True,
+                        help="path that will contain output")
+    ligand.add_argument("-a", "--add_ligand", type=str, nargs=3, action="append",
+                        metavar=("ligand_type", "ligand_name", "number_of_ligand"),
+                        help="add ligand to the input JSON file. Provide 'ligand type', 'ligand name', and "
+                             "'number of the ligand molecule'. The 'ligand type' must be either 'smiles' or "
+                             "'ccdCodes'. Multiple ligands can be added. e.g. -a smiles CCOCCC 1 -a ccdCodes PRD 2")
+    ligand.add_argument("-p", "--purge_ligands", action="store_true",
+                        help="purge all ligands from the input JSON file at first")
+    ligand.add_argument("-r", "--remove_ccdcodes", type=str, nargs="*", metavar="ccdcode",
+                        help="remove ligands with ccdcodes from the input JSON file. "
+                             "Multiple ccdcodes can be provided. e.g. -r PRD ATP")
+    ligand.add_argument("-n", "--name", type=str, metavar="new prediction name",
+                        help="Set the job name in the input JSON file. If --batch is enabled, the input name will be "
+                             "used as a suffix, separated by a '-'. e.g. -n 'added_ccdCodes'")
+    ligand.add_argument("-u", "--add_userccd", type=str, nargs="*", metavar="userccd_file",
+                        help="add user provided ccdCodes to the input JSON file. Multiple files can be provided. "
+                             "e.g. -u userccd1.cif userccd2.cif")
+    ligand.add_argument("--batch", action="store_true", default=False,
+                        help="process multiple queries. If set, --input/-i should be the path to a "
+                             "directory containing A3M or JSON files. (default: False)")
+    ligand.add_argument("--overwrite_existing_results", metavar="<Boolean>", type=bool, default=False,
+                        help="do not recompute results, if a query has already been predicted. (default: False)")
 
     # command summary parser
     desc_summary = ''' Generates an interactive HTML report and a CSV file from FlashFold output. '''
@@ -167,6 +200,8 @@ def main() -> None:
             download_ncbi_data(args)
         case "fold":
             predict_3d_structure(args)
+        case "ligand":
+            make_json_with_ligand(args)
         case "summary":
             make_summary_report(args)
         case _:

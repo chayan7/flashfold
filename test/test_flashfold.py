@@ -159,13 +159,12 @@ def test_multimer_msa():
     assert is_valid_protein_a3m(a3m_file), f"Error: {flashfold_sub} with --only_msa"
 
 
-def test_fold_json_batch():
+def test_json_batch():
     flashfold_sub = "fold"
     # testing fold for batch json output
     result = subprocess.run(
         ["flashfold", flashfold_sub,
          "-q", "test/input/msa/",
-         "-d", "test/output/custom_database/",
          "-o", "test/output/fold-json/",
          "-t", "1",
          "--batch",
@@ -186,6 +185,114 @@ def test_fold_json_batch():
     assert monomer_paired_msa_value == "", f"Error: {flashfold_sub} - batch with json output"
     assert heterodimer_paired_msa_value_1 != "", f"Error: {flashfold_sub} - batch with json output"
     assert heterodimer_paired_msa_value_2 != "", f"Error: {flashfold_sub} - batch with json output"
+
+
+def test_ligand_batch():
+    flashfold_sub = "ligand"
+    # testing flashfold for ligand batch
+    result = subprocess.run(
+        ["flashfold", flashfold_sub,
+         "-i", "test/input/msa/",
+         "-o", "test/output/fold-ligand/",
+         "-a", "smiles", "CCOCCC", "1",
+         "-a", "ccdCodes", "PRD", "2",
+         "-n", "added_smiles_ccdCodes",
+         "--batch"],
+        capture_output=True,
+        text=True
+    )
+    monomer_json_file = "test/output/fold-ligand/monomer.json"
+    heterodimer_json_file = "test/output/fold-ligand/heterodimer.json"
+    loaded_monomer = load_json_file(monomer_json_file)
+    monomer_ligand_value_1 = loaded_monomer['sequences'][1].get('ligand', None)
+    monomer_ligand_value_2 = loaded_monomer['sequences'][2].get('ligand', None)
+    monomer_name = loaded_monomer['name']
+    loaded_heterodimer = load_json_file(heterodimer_json_file)
+    heterodimer_ligand_value_1 = loaded_heterodimer['sequences'][2].get('ligand', None)
+    heterodimer_ligand_value_2 = loaded_heterodimer['sequences'][3].get('ligand', None)
+    heterodimer_name = loaded_heterodimer['name']
+
+    assert result.returncode == 0, f"{flashfold_sub} failed with error: {result.stderr} - batch with ligand"
+    assert file_has_content(monomer_json_file), f"Error: {flashfold_sub} - batch with ligand for monomer"
+    assert file_has_content(heterodimer_json_file), f"Error: {flashfold_sub} - batch with ligand for heterodimer"
+    assert monomer_ligand_value_1, f"Error: {flashfold_sub} - batch with ligand for monomer"
+    assert monomer_ligand_value_2, f"Error: {flashfold_sub} - batch with ligand for monomer"
+    assert monomer_name.split("-")[-1] == "added_smiles_ccdCodes", \
+        f"Error: {flashfold_sub} - batch with ligand for monomer"
+    assert heterodimer_ligand_value_1, f"Error: {flashfold_sub} - batch with ligand for heterodimer"
+    assert heterodimer_ligand_value_2, f"Error: {flashfold_sub} - batch with ligand for heterodimer"
+    assert heterodimer_name.split("-")[-1] == "added_smiles_ccdCodes", \
+        f"Error: {flashfold_sub} - batch with ligand for heterodimer"
+
+
+def test_ligand_remove_ccd_code():
+    flashfold_sub = "ligand"
+    # testing flashfold for remove ccdCode ligand batch
+    result = subprocess.run(
+        ["flashfold", flashfold_sub,
+         "-i", "test/output/fold-ligand/",
+         "-o", "test/output/fold-removed/",
+         "-r", "PRD",
+         "-n", "removed_prd",
+         "--batch"],
+        capture_output=True,
+        text=True
+    )
+    monomer_json_file = "test/output/fold-removed/monomer.json"
+    heterodimer_json_file = "test/output/fold-removed/heterodimer.json"
+    loaded_monomer = load_json_file(monomer_json_file)
+    monomer_ligand_value_1 = loaded_monomer['sequences'][1].get('ligand', None)
+    monomer_ligands = len(loaded_monomer['sequences']) - 1
+    monomer_name = loaded_monomer['name']
+    loaded_heterodimer = load_json_file(heterodimer_json_file)
+    heterodimer_ligand_value_1 = loaded_heterodimer['sequences'][2].get('ligand', None)
+    heterodimer_ligands = len(loaded_heterodimer['sequences']) - 2
+    heterodimer_name = loaded_heterodimer['name']
+
+    assert result.returncode == 0, f"{flashfold_sub} failed with error: {result.stderr} - remove ccdCode for ligand"
+    assert file_has_content(monomer_json_file), f"Error: {flashfold_sub} - remove ccdCode for monomer"
+    assert file_has_content(heterodimer_json_file), f"Error: {flashfold_sub} - remove ccdCode for heterodimer"
+    assert monomer_ligand_value_1, f"Error: {flashfold_sub} - remove ccdCode for monomer"
+    assert monomer_ligands == 1, f"Error: {flashfold_sub} - remove ccdCode for monomer"
+    assert monomer_name.split("-")[-1] == "removed_prd", \
+        f"Error: {flashfold_sub} - remove ccdCode for monomer"
+    assert heterodimer_ligand_value_1, f"Error: {flashfold_sub} - remove ccdCode for heterodimer"
+    assert heterodimer_ligands == 1, f"Error: {flashfold_sub} - remove ccdCode for heterodimer"
+    assert heterodimer_name.split("-")[-1] == "removed_prd", \
+        f"Error: {flashfold_sub} - remove ccdCode for heterodimer"
+
+
+def test_ligand_purge():
+    flashfold_sub = "ligand"
+    # testing flashfold for purge ligand batch
+    result = subprocess.run(
+        ["flashfold", flashfold_sub,
+         "-i", "test/output/fold-ligand/",
+         "-o", "test/output/fold-purged/",
+         "-p",
+         "-n", "purged",
+         "--batch"],
+        capture_output=True,
+        text=True
+    )
+    monomer_json_file = "test/output/fold-purged/monomer.json"
+    heterodimer_json_file = "test/output/fold-purged/heterodimer.json"
+    loaded_monomer = load_json_file(monomer_json_file)
+    monomer_ligands = len(loaded_monomer['sequences']) - 1
+    monomer_name = loaded_monomer['name']
+    loaded_heterodimer = load_json_file(heterodimer_json_file)
+    heterodimer_ligands = len(loaded_heterodimer['sequences']) - 2
+    heterodimer_name = loaded_heterodimer['name']
+
+    assert result.returncode == 0, f"{flashfold_sub} failed with error: {result.stderr} - purge ligand"
+    assert file_has_content(monomer_json_file), f"Error: {flashfold_sub} - purge monomer"
+    assert file_has_content(heterodimer_json_file), f"Error: {flashfold_sub} - purge heterodimer"
+    assert monomer_ligands == 0, f"Error: {flashfold_sub} -purge monomer"
+    assert monomer_name.split("-")[1] == "purged", \
+        f"Error: {flashfold_sub} - purge monomer"
+    assert heterodimer_ligands == 0, f"Error: {flashfold_sub} - purge heterodimer"
+    assert heterodimer_name.split("-")[1] == "purged", \
+        f"Error: {flashfold_sub} - purge heterodimer"
 
 
 def test_fold_batch():

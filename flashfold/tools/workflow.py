@@ -47,9 +47,9 @@ def run_homology_search(fasta_files: list, database_fasta: str, provided_cpu: in
     return
 
 
-def run_af3tools(a3m_file_path: str, json_file_path: str) -> None:
+def run_msa_to_json(a3m_file_path: str, json_file_path: str) -> None:
     """
-    Run af3tools for creating json file from msa for AF3 input.
+    Run msa_to_json.py for creating json file from msa for AF3 input.
 
     Args:
         a3m_file_path (str): Path to the A3M file.
@@ -59,9 +59,9 @@ def run_af3tools(a3m_file_path: str, json_file_path: str) -> None:
         None
     """
     current_file_dir = os.path.dirname(os.path.abspath(__file__))
-    af3tools_script = os.path.join(current_file_dir, "msa_to_json.py")
-    af3tools_command = f"python3 {af3tools_script} -i {a3m_file_path} -o {json_file_path}"
-    run_single_job(af3tools_command, "JSON file creation")
+    msa_to_json_script = os.path.join(current_file_dir, "msa_to_json.py")
+    msa_to_json_script_command = f"python3 {msa_to_json_script} -i {a3m_file_path} -o {json_file_path}"
+    run_single_job(msa_to_json_script_command, "JSON file creation")
     return
 
 
