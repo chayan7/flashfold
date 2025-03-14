@@ -167,24 +167,16 @@ def main() -> None:
     summary = subparsers.add_parser('summary', description=desc_summary)
     summary.add_argument("-d", "--directory", metavar="<File_Dir>", type=str, required=True,
                          help="path to FlashFold output directory")
-    summary.add_argument("-fl", "--filter_by_plddt", metavar="<Float>", type=float,
-                         help="Filter output by pLDDT score.")
-    summary.add_argument("-fp", "--filter_by_ptm", metavar="<Float>", type=float,
-                         help="Filter output by pTM score.")
-    summary.add_argument("-fi", "--filter_by_iptm", metavar="<Float>", type=float,
-                         help="Filter output by ipTM score.")
-    summary.add_argument("-fip", "--filter_by_iptm_plus_ptm", metavar="<Float>", type=float,
-                         help="Filter output by ipTM+pTM score.")
-    summary.add_argument("-fai", "--filter_by_actifptm", metavar="<Float>", type=float,
-                         help="Filter output by actifpTM score.")
-    summary.add_argument("-faip", "--filter_by_actifptm_plus_ptm", metavar="<Float>", type=float,
-                         help="Filter output by actifpTM+pTM score.")
-    summary.add_argument("-fmd", "--filter_by_min_pdockq2", metavar="<Float>", type=float,
-                         help="Filter output by minimum pDockQ2 score.")
-    summary.add_argument("-fad", "--filter_by_avg_pdockq2", metavar="<Float>", type=float,
-                         help="Filter output by average pDockQ2 score.")
+    summary.add_argument("-f", "--filter", type=str, nargs=2, action="append",
+                         metavar=("criteria", "score"),
+                         help="filters summary report by provided criteria. Provide 'criteria' and 'score'. The "
+                              "'criteria' must be any of the following: 'plddt', 'ptm', 'iptm', 'iptm_plus_ptm',"
+                              " 'actifptm', 'actifptm_plus_ptm', 'min_pdockq2', 'mean_pdockq2'. Multiple filters can be"
+                              " added. e.g. -f iptm_plus_ptm 0.6 -f mean_pdockq2 0.23")
     summary.add_argument("-o", "--output", metavar="<File_Dir>", type=str, required=True,
                          help="Path to the summary output directory.")
+    summary.add_argument("-af3", "--alphafold3", action="store_true", default=False,
+                         help="Results are from AlphaFold3 (default: False)")
 
     # Parse the arguments
     args = parser.parse_args()

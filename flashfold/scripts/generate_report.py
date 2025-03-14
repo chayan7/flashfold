@@ -5,36 +5,38 @@ import sys
 import csv
 import py3Dmol
 import re
-from typing import List, Dict, Tuple, Union, Optional
-from flashfold.utils import is_valid_path
+from typing import List, Dict, Tuple, Union, Optional, Literal
+from flashfold.utils import is_valid_path, load_json_file
 
 query_index = 0
 length_index = 1
 stoichiometry_index = 2
-pLDDT_index = 3
-pTM_index = 4
-ipTM_index = 5
-ipTM_plus_pTM_index = 6
-actifpTM_index = 7
-actifpTM_plus_pTM_index = 8
-min_pDockQ2_index = 9
-mean_pDockQ2_index = 10
-model_index = 11
-relaxed_model_index = 12
-result_path_index = 13
+plddt_index = 3
+ptm_index = 4
+iptm_index = 5
+iptm_plus_ptm_index = 6
+actifptm_index = 7
+actifptm_plus_ptm_index = 8
+min_pdockq2_index = 9
+mean_pdockq2_index = 10
+ranking_index = 11
+model_index = 12
+relaxed_model_index = 13
+result_path_index = 14
 
-summary_table_headers = [''] * 14
+summary_table_headers = [''] * 15
 summary_table_headers[query_index] = 'Query'
 summary_table_headers[length_index] = 'Length'
 summary_table_headers[stoichiometry_index] = 'Stoichiometry'
-summary_table_headers[pLDDT_index] = 'pLDDT'
-summary_table_headers[ipTM_index] = 'ipTM'
-summary_table_headers[pTM_index] = 'pTM'
-summary_table_headers[ipTM_plus_pTM_index] = 'ipTM+pTM'
-summary_table_headers[actifpTM_index] = 'actifpTM'
-summary_table_headers[actifpTM_plus_pTM_index] = 'actifpTM+pTM'
-summary_table_headers[min_pDockQ2_index] = 'min_pDockQ2'
-summary_table_headers[mean_pDockQ2_index] = 'mean_pDockQ2'
+summary_table_headers[plddt_index] = 'pLDDT'
+summary_table_headers[iptm_index] = 'ipTM'
+summary_table_headers[ptm_index] = 'pTM'
+summary_table_headers[iptm_plus_ptm_index] = 'ipTM+pTM'
+summary_table_headers[actifptm_index] = 'actifpTM'
+summary_table_headers[actifptm_plus_ptm_index] = 'actifpTM+pTM'
+summary_table_headers[min_pdockq2_index] = 'min_pDockQ2'
+summary_table_headers[mean_pdockq2_index] = 'mean_pDockQ2'
+summary_table_headers[ranking_index] = 'Ranking_score'
 summary_table_headers[model_index] = 'Predicted model'
 summary_table_headers[relaxed_model_index] = 'Predicted model (relaxed)'
 summary_table_headers[result_path_index] = 'Path to result'
@@ -48,13 +50,6 @@ scripts_js = os.path.join(static_file_dir, "scripts.js")
 styles_css = os.path.join(static_file_dir, "style.css")
 
 
-def remove_query_prefix(query: str) -> str:
-    pattern = re.compile(r'^S\d+_')
-    if pattern.match(query):
-        return "_".join(query.split("_")[1:])
-    return query
-
-
 def make_float(input_item: Union[str, float]) -> float:
     return 0 if input_item == 'n/a' else float(input_item)
 
@@ -66,8 +61,14 @@ def round_if_float(input_item: Union[str, float]) -> str:
         return str(input_item)
 
 
-def if_none_return_zero(input_item: Optional[float]) -> float:
-    return input_item if input_item is not None else 0.0
+def return_float_if_float(input_name: str, input_score: Union[str, float]) -> float:
+    if not input_score.replace('.', '', 1).isdigit():
+        print(f"\n-- Warning: Please provide a valid '{input_name}' score for filtering. "
+              f"Provided score: '{input_score}'\n")
+        sys.exit()
+    else:
+        return float(input_score)
+
 
 
 def get_best_score_from_tsv(file_path: str) -> Dict[str, str]:
@@ -103,55 +104,86 @@ def get_length_stoichiometry_from_a3m(file_path: str) -> Tuple[str, str]:
     return length, stoichiometry
 
 
-def generate_3dmol_html(pdb_path: str) -> str:
-    if not is_valid_path(pdb_path):
+def generate_3dmol_html(file_path: str, file_type: Literal['pdb', 'cif']) -> str:
+    if not is_valid_path(file_path):
         return 'n/a'
-    
-    with open(pdb_path, 'r') as f:
-        pdb_data = f.read()
+
+    with open(file_path, 'r') as f:
+        file_data = f.read()
 
     viewer = py3Dmol.view(width=800, height=600)
-    viewer.addModel(pdb_data, 'pdb')
+    viewer.addModel(file_data, file_type)
     viewer.setStyle({'cartoon': {'color': 'spectrum'}})
     viewer.zoomTo()
-    pdb_html_path = pdb_path.replace('.pdb', '.html')
-    with open(pdb_html_path, 'w') as pdb_html:
+    text_to_replace = f".{file_type}"
+    html_path = file_path.replace(text_to_replace, '.html')
+    with open(html_path, 'w') as html_file:
         # noinspection PyProtectedMember
-        pdb_html.write(viewer._make_html())
-    return pdb_html_path
+        html_file.write(viewer._make_html())
+    return html_path
 
 
-def get_summary_table_rows_from_result_path(path_to_results: str) -> List[List[str]]:
+def get_summary_table_rows_from_result_path(path_to_results: str, is_af3: bool) -> List[List[str]]:
     result_directory = os.path.realpath(path_to_results)
     row_of_rows = []
     for root, _, files in os.walk(result_directory):
         for file in files:
-            if file == 'score.tsv':
-                row = [''] * len(summary_table_headers)
-                row[result_path_index] = root
-                tsv_file_path = os.path.join(root, file)
-                best_score_from_tsv = get_best_score_from_tsv(tsv_file_path)
-                model_name = best_score_from_tsv['name']
-                relaxed_model_name = model_name.replace('_unrelaxed_', '_relaxed_')
-                query_id = model_name.split('_unrelaxed_rank_001_')[0]
-                a3m_file = os.path.join(root, f"{query_id}.a3m")
-                q_length, q_stoichiometry = get_length_stoichiometry_from_a3m(a3m_file)
-                row[query_index] = query_id
-                row[length_index] = q_length
-                row[stoichiometry_index] = q_stoichiometry
-                model_path = os.path.join(root, model_name)
-                relaxed_model_path = os.path.join(root, relaxed_model_name)
-                row[model_index] = generate_3dmol_html(model_path)
-                row[relaxed_model_index] = generate_3dmol_html(relaxed_model_path) 
-                row[pLDDT_index] = best_score_from_tsv.get('pLDDT', 'n/a')
-                row[ipTM_index] = best_score_from_tsv.get('ipTM', 'n/a')
-                row[pTM_index] = best_score_from_tsv.get('pTM', 'n/a')
-                row[ipTM_plus_pTM_index] = best_score_from_tsv.get('ipTM+pTM', 'n/a')
-                row[actifpTM_index] = best_score_from_tsv.get('actifpTM', 'n/a')
-                row[actifpTM_plus_pTM_index] = best_score_from_tsv.get('actifpTM+pTM', 'n/a')
-                row[min_pDockQ2_index] = best_score_from_tsv.get('min_pDockQ2', 'n/a')
-                row[mean_pDockQ2_index] = best_score_from_tsv.get('mean_pDockQ2', 'n/a')
-                row_of_rows.append(row)
+            if not is_af3:
+                if file == 'score.tsv':
+                    row = [''] * len(summary_table_headers)
+                    row[result_path_index] = root
+                    tsv_file_path = os.path.join(root, file)
+                    best_score_from_tsv = get_best_score_from_tsv(tsv_file_path)
+                    model_name = best_score_from_tsv['name']
+                    relaxed_model_name = model_name.replace('_unrelaxed_', '_relaxed_')
+                    query_id = model_name.split('_unrelaxed_rank_001_')[0]
+                    a3m_file = os.path.join(root, f"{query_id}.a3m")
+                    q_length, q_stoichiometry = get_length_stoichiometry_from_a3m(a3m_file)
+                    row[query_index] = query_id
+                    row[length_index] = q_length
+                    row[stoichiometry_index] = q_stoichiometry
+                    model_path = os.path.join(root, model_name)
+                    relaxed_model_path = os.path.join(root, relaxed_model_name)
+                    row[model_index] = generate_3dmol_html(model_path, 'pdb')
+                    row[relaxed_model_index] = generate_3dmol_html(relaxed_model_path, 'pdb')
+                    row[plddt_index] = best_score_from_tsv.get('pLDDT', 'n/a')
+                    row[iptm_index] = best_score_from_tsv.get('ipTM', 'n/a')
+                    row[ptm_index] = best_score_from_tsv.get('pTM', 'n/a')
+                    row[iptm_plus_ptm_index] = best_score_from_tsv.get('ipTM+pTM', 'n/a')
+                    row[actifptm_index] = best_score_from_tsv.get('actifpTM', 'n/a')
+                    row[actifptm_plus_ptm_index] = best_score_from_tsv.get('actifpTM+pTM', 'n/a')
+                    row[min_pdockq2_index] = best_score_from_tsv.get('min_pDockQ2', 'n/a')
+                    row[mean_pdockq2_index] = best_score_from_tsv.get('mean_pDockQ2', 'n/a')
+                    row[ranking_index] = 'n/a'
+                    row_of_rows.append(row)
+            else:
+                if file.endswith('_summary_confidences.json'):
+                    row = [''] * len(summary_table_headers)
+                    json_file_path = os.path.join(root, file)
+                    query_id = file.split("_summary_confidences.json")[0]
+                    cif_file = os.path.join(root, f"{query_id}_model.cif")
+                    loaded_json_data = load_json_file(json_file_path)
+                    row[query_index] = query_id
+                    row[length_index] = loaded_json_data.get('length', 'n/a')
+                    row[stoichiometry_index] = loaded_json_data.get('stoichiometry', 'n/a')
+                    row[plddt_index] = loaded_json_data.get('pLDDT', 'n/a')
+                    iptm_score = loaded_json_data.get('iptm')
+                    ptm_score = loaded_json_data.get('ptm')
+                    iptm_plus_ptm_score = 'n/a' if not iptm_score or not ptm_score else \
+                        (0.8 * float(iptm_score) + 0.2 * float(ptm_score))
+                    row[iptm_index] = 'n/a' if not iptm_score else round_if_float(iptm_score)
+                    row[ptm_index] = 'n/a' if not ptm_score else round_if_float(ptm_score)
+                    row[iptm_plus_ptm_index] = round_if_float(iptm_plus_ptm_score)
+                    row[actifptm_index] = 'n/a'
+                    row[actifptm_plus_ptm_index] = 'n/a'
+                    row[min_pdockq2_index] = 'n/a'
+                    row[mean_pdockq2_index] = 'n/a'
+                    ranking_score = loaded_json_data.get('ranking_score')
+                    row[ranking_index] = 'n/a' if not ranking_score else round_if_float(ranking_score)
+                    row[model_index] = generate_3dmol_html(cif_file, 'cif')
+                    row[relaxed_model_index] = "n/a"
+                    row[result_path_index] = root
+                    row_of_rows.append(row)
     return row_of_rows
 
 
@@ -241,16 +273,18 @@ def make_summary_report(args) -> None:
         return
 
     filter_dict = dict()
-    filter_dict[pLDDT_index] = if_none_return_zero(args.filter_by_plddt)
-    filter_dict[pTM_index] = if_none_return_zero(args.filter_by_ptm)
-    filter_dict[ipTM_index] = if_none_return_zero(args.filter_by_iptm)
-    filter_dict[ipTM_plus_pTM_index] = if_none_return_zero(args.filter_by_iptm_plus_ptm)
-    filter_dict[actifpTM_index] = if_none_return_zero(args.filter_by_actifptm)
-    filter_dict[actifpTM_plus_pTM_index] = if_none_return_zero(args.filter_by_actifptm_plus_ptm)
-    filter_dict[min_pDockQ2_index] = if_none_return_zero(args.filter_by_min_pdockq2)
-    filter_dict[mean_pDockQ2_index] = if_none_return_zero(args.filter_by_avg_pdockq2)
+    if args.filter:
+        for f_name, f_score in args.filter:
+            index_name = f"{f_name.lower()}_index"
+            if index_name not in globals():
+                print(f"\n-- Warning: Skipping the invalid filter '{f_name}'. Please use one of the following:\n\t"
+                      f"'plddt', 'ptm', 'iptm', 'iptm_plus_ptm', 'actifptm', 'actifptm_plus_ptm', "
+                      f"'min_pdockq2', 'mean_pdockq2'")
+                continue
+            else:
+                filter_dict[globals()[index_name]] = return_float_if_float(f_name, f_score)
 
-    summary_table_rows = get_summary_table_rows_from_result_path(args.directory)
+    summary_table_rows = get_summary_table_rows_from_result_path(args.directory, args.alphafold3)
     if len(summary_table_rows) == 0:
         print(f"\n-- Error: No results found in the provided path below:\n\t'{os.path.realpath(args.directory)}'\n")
         return
