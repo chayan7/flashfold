@@ -5,26 +5,11 @@ from typing import List, Dict, Optional, Literal
 from collections import namedtuple
 
 from flashfold.tools import run_msa_to_json, modjson
-from flashfold.utils import is_valid_path, load_json_file
-from flashfold.utils import (is_valid_protein_a3m, get_files_from_path_by_extension, current_time,
-                             join_list_elements_by_character)
+from flashfold.utils import is_valid_protein_a3m, get_files_from_path_by_extension, current_time, \
+                             join_list_elements_by_character, manage_output_path, is_valid_path, load_json_file
 
 
 Valid_Ligand_Input = namedtuple('Valid_Ligand_Input', ['file_ext', 'file_paths'])
-
-
-def create_output_directory(output_path: str, overwrite: bool) -> None:
-    if os.path.exists(output_path):
-        if not overwrite:
-            print(f"\n-- Error: Output directory '{output_path}' already exists. "
-                  f"Please provide a different output directory or use '--overwrite_existing_results' to "
-                  f"replace existing results.\n")
-            sys.exit()
-        else:
-            shutil.rmtree(output_path)
-            os.makedirs(output_path)
-    else:
-        os.makedirs(output_path)
 
 
 def check_userccd_path(userccd_file_paths: Optional[List[str]]) -> Optional[List[str]]:
@@ -131,7 +116,7 @@ def get_valid_ligand_input_files_with_type(dir_or_file: str, is_batch: bool) -> 
 
 
 def make_json_with_ligand(args) -> None:
-    input_files = get_valid_ligand_input_files_with_type(args.input, args.batch)
+    input_files = get_valid_ligand_input_files_with_type(args.query, args.batch)
     is_a3m = input_files.file_ext == "a3m"
     is_batch = args.batch
 
@@ -142,9 +127,7 @@ def make_json_with_ligand(args) -> None:
     name: Optional[str] = args.name
 
     # Create output directory
-    out_dir_path = os.path.realpath(args.output)
-    overwrite = args.overwrite_existing_results
-    create_output_directory(out_dir_path, overwrite)
+    out_dir_path = manage_output_path(args.output, args.overwrite_existing_results)
 
     if is_a3m:
         temp_dir = os.path.join(out_dir_path, "temp")

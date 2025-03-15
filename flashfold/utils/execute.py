@@ -82,7 +82,7 @@ def run_jobs_in_parallel(thread_count: int, threads_per_job: int,  jobs: List, j
     print(f'-- {current_time()} > {job_name} has been completed \n')
 
 
-def run_single_job(job: str, job_name: str) -> None:
+def  run_single_job(job: str, job_name: str) -> None:
     """
     Run a single job using subprocess.run() and print the start and completion messages.
     """

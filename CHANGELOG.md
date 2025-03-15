@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 #### Added
 - Adds function to modify json file for AlphaFold3 input, so that ligand can be added or removed.
 - Adds `ligand` subcommand.
+- Adds `run_af3` subcommand.
 - Adds test cases for the FlashFold `ligand` subcommand.
 - Adds function to generate summary report from AlphaFold3 prediction or results.
 

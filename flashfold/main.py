@@ -1,7 +1,9 @@
 import argparse
 from flashfold.scripts import create_protein_db_from_gbk, download_database_from_cloud, predict_3d_structure, \
-    extend_main_sequence_db, download_ncbi_data, parse_formats, make_summary_report, make_json_with_ligand
+    extend_main_sequence_db, download_ncbi_data, parse_formats, make_summary_report, make_json_with_ligand, \
+    process_alphafold3_task
 from flashfold.utils import is_zero_or_pos_int, is_pos_int
+from pathlib import Path
 
 
 def main() -> None:
@@ -103,8 +105,9 @@ def main() -> None:
     fold.add_argument("-t", "--threads", metavar="<Integer, >=1>", type=is_pos_int, default=16,
                       help="number of threads. Only utilized when query is a path to FASTA file(s) (default: 16)")
     fold.add_argument("--batch", action="store_true", default=False,
-                      help="process multiple queries (default: False). If set, --query/-q should be the path to a "
-                           "directory containing FASTA/A3M files.")
+                      help="process multiple queries. If set, --query/-q should be the path to a "
+                           "directory containing FASTA/A3M files. Parallel batch processing is available only for "
+                           "homology searching. (default: False)")
     fold.add_argument("--only_msa", action="store_true", default=False,
                       help="does not predict structures but only produces MSA for given query (default: False)")
     fold.add_argument("--only_json", action="store_true", default=False,
@@ -136,31 +139,56 @@ def main() -> None:
     desc_ligand = ''' Add or remove ligands in JSON files. Additionally, MSA files (A3M format) can also be used to add 
     ligands. The final output will be a JSON file, that can be used as input for AlphaFold3. '''
     ligand = subparsers.add_parser('ligand', description=desc_ligand)
-    ligand.add_argument("-i", "--input", type=str, metavar="<FILE_In|File_Dir>", required=True,
+    ligand.add_argument("-q", "--query", type=str, metavar="<FILE_In|File_Dir>", required=True,
                         help="path to the predicted A3M or JSON file(s)")
     ligand.add_argument("-o", "--output", type=str, metavar="<Output_Dir>", required=True,
                         help="path that will contain output")
     ligand.add_argument("-a", "--add_ligand", type=str, nargs=3, action="append",
                         metavar=("ligand_type", "ligand_name", "number_of_ligand"),
-                        help="add ligand to the input JSON file. Provide 'ligand type', 'ligand name', and "
-                             "'number of the ligand molecule'. The 'ligand type' must be either 'smiles' or "
+                        help="add ligand to the output JSON file for each query. Provide 'ligand type', 'ligand name', "
+                             "and 'number of the ligand molecule'. The 'ligand type' must be either 'smiles' or "
                              "'ccdCodes'. Multiple ligands can be added. e.g. -a smiles CCOCCC 1 -a ccdCodes PRD 2")
     ligand.add_argument("-p", "--purge_ligands", action="store_true",
-                        help="purge all ligands from the input JSON file at first")
+                        help="purge all ligands from the query JSON file at first. (default: False)")
     ligand.add_argument("-r", "--remove_ccdcodes", type=str, nargs="*", metavar="ccdcode",
-                        help="remove ligands with ccdcodes from the input JSON file. "
+                        help="remove ligands with ccdcodes from the query JSON file. "
                              "Multiple ccdcodes can be provided. e.g. -r PRD ATP")
     ligand.add_argument("-n", "--name", type=str, metavar="new prediction name",
-                        help="Set the job name in the input JSON file. If --batch is enabled, the input name will be "
+                        help="Set the job name in the output JSON file. If --batch is enabled, the query name will be "
                              "used as a suffix, separated by a '-'. e.g. -n 'added_ccdCodes'")
     ligand.add_argument("-u", "--add_userccd", type=str, nargs="*", metavar="userccd_file",
-                        help="add user provided ccdCodes to the input JSON file. Multiple files can be provided. "
+                        help="add user provided ccdCodes to the output JSON file. Multiple files can be provided. "
                              "e.g. -u userccd1.cif userccd2.cif")
     ligand.add_argument("--batch", action="store_true", default=False,
-                        help="process multiple queries. If set, --input/-i should be the path to a "
+                        help="process multiple queries but one-by-one. If set, --query/-q should be the path to a "
                              "directory containing A3M or JSON files. (default: False)")
     ligand.add_argument("--overwrite_existing_results", metavar="<Boolean>", type=bool, default=False,
                         help="do not recompute results, if a query has already been predicted. (default: False)")
+
+    # command run_af3 parser
+    desc_run_af3 = ''' Run AlphaFold3 prediction using the FlashFold generated JSON files. User should build a 
+    Docker container with all the right python dependencies for AlphaFold3 as described in the AlphaFold3 documentation.
+    For the first time execution, this script requires the local path to AlphaFold3 directory, including the path to 
+    AlphaFold3 database and parameters. It can be provided again later when any of the above paths change.'''
+    run_af3 = subparsers.add_parser('run_af3', description=desc_run_af3)
+    run_af3.add_argument("-q", "--query", type=str, metavar="<FILE_In|File_Dir>", required=True,
+                         help="path to the FlashFold generated JSON file(s)")
+    run_af3.add_argument("-o", "--output", type=str, metavar="<Output_Dir>", required=True,
+                         help="path that will contain output")
+    run_af3.add_argument("--af3_image", type=str, metavar="<String>", default="alphafold3",
+                         help="name of AlphaFold3 docker image. This is required for the first time unless the path is"
+                              "changed in future. default: 'alphafold3'")
+    run_af3.add_argument('--af3_db', type=Path, metavar="<File_Dir>",
+                         help="path to the AlphaFold3 database directory. This is required for the first time unless "
+                                "the path is changed in future.")
+    run_af3.add_argument('--af3_params', type=Path, metavar="<File_Dir>",
+                         help="path to the AlphaFold3 parameters directory. This is required for the first time unless "
+                              "the path is changed in future.")
+    run_af3.add_argument("--batch", action="store_true", default=False,
+                         help="process multiple queries but one-by-one. If set, --query/-q should be the path to a "
+                              "directory containing JSON files. (default: False)")
+    run_af3.add_argument("--overwrite_existing_results", metavar="<Boolean>", type=bool, default=False,
+                         help="do not recompute results, if a query has already been predicted. (default: False)")
 
     # command summary parser
     desc_summary = ''' Generates an interactive HTML report and a CSV file from FlashFold output. '''
@@ -194,6 +222,8 @@ def main() -> None:
             predict_3d_structure(args)
         case "ligand":
             make_json_with_ligand(args)
+        case "run_af3":
+            process_alphafold3_task(args)
         case "summary":
             make_summary_report(args)
         case _:

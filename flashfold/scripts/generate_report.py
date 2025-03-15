@@ -61,7 +61,7 @@ def round_if_float(input_item: Union[str, float]) -> str:
         return str(input_item)
 
 
-def return_float_if_float(input_name: str, input_score: Union[str, float]) -> float:
+def return_float_if_float(input_name: str, input_score: str) -> float:
     if not input_score.replace('.', '', 1).isdigit():
         print(f"\n-- Warning: Please provide a valid '{input_name}' score for filtering. "
               f"Provided score: '{input_score}'\n")

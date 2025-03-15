@@ -192,7 +192,7 @@ def test_ligand_batch():
     # testing flashfold for ligand batch
     result = subprocess.run(
         ["flashfold", flashfold_sub,
-         "-i", "test/input/msa/",
+         "-q", "test/input/msa/",
          "-o", "test/output/fold-ligand/",
          "-a", "smiles", "CCOCCC", "1",
          "-a", "ccdCodes", "PRD", "2",
@@ -230,7 +230,7 @@ def test_ligand_remove_ccd_code():
     # testing flashfold for remove ccdCode ligand batch
     result = subprocess.run(
         ["flashfold", flashfold_sub,
-         "-i", "test/output/fold-ligand/",
+         "-q", "test/output/fold-ligand/",
          "-o", "test/output/fold-removed/",
          "-r", "PRD",
          "-n", "removed_prd",
@@ -267,7 +267,7 @@ def test_ligand_purge():
     # testing flashfold for purge ligand batch
     result = subprocess.run(
         ["flashfold", flashfold_sub,
-         "-i", "test/output/fold-ligand/",
+         "-q", "test/output/fold-ligand/",
          "-o", "test/output/fold-purged/",
          "-p",
          "-n", "purged",

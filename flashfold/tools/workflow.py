@@ -1,16 +1,18 @@
 import os
-from flashfold.utils import run_jobs_in_parallel, run_single_job, get_sequence_length_from_single_fasta
+from typing import List, Dict
+from flashfold.utils import run_jobs_in_parallel, run_single_job, get_sequence_length_from_single_fasta, \
+    update_time_log
 
 
 min_jackhmmer_hits = 1000
 
 
-def run_homology_search(fasta_files: list, database_fasta: str, provided_cpu: int, out_path: str) -> None:
+def run_homology_search(fasta_files: List, database_fasta: str, provided_cpu: int, out_path: str) -> None:
     """
     Run homology searching.
 
     Args:
-        fasta_files (list): List of paths to FASTA files.
+        fasta_files (List): List of paths to FASTA files.
         database_fasta (str): Path to the database FASTA file.
         provided_cpu (int): Number of CPU cores to use.
         out_path (str): Output directory path.
@@ -65,3 +67,48 @@ def run_msa_to_json(a3m_file_path: str, json_file_path: str) -> None:
     return
 
 
+def run_alphafold3_docker(config: Dict, query_files: List[str], output_dir: str, log_file_path: str) -> None:
+    """
+    Run AlphaFold3 using Docker.
+
+    Args:
+        config (Dict): Configuration dictionary containing paths to AlphaFold3 parameters, database, and Docker image.
+        query_files (List[str]): List of paths to query JSON files.
+        output_dir (str): Directory to store the output results.
+        log_file_path (str): Path to the log file for recording timings.
+
+    Returns:
+        None
+    """
+
+    af3_params_path = config.get('params')
+    af3_db_path = config.get('db')
+    af3_image_name = config.get('image')
+
+    for query_file in query_files:
+        query_file_basename = os.path.basename(query_file)
+        query_file_without_ext = os.path.splitext(query_file_basename)[0]
+        query_file_dir = os.path.dirname(query_file)
+        af3_docker_command = [
+            "docker", "run", "-it",
+            "--user", f"{os.getuid()}:{os.getgid()}",
+            "--volume", f"{query_file_dir}:/input",
+            "--volume", f"{output_dir}:/output",
+            "--volume", f"{af3_params_path}:/models",
+            "--volume", f"{af3_db_path}:/public_databases",
+            "--gpus", "all",
+            f"{af3_image_name}",
+            "python", "run_alphafold.py",
+            f"--json_path=/input/{query_file_basename}",
+            "--model_dir=/models",
+            "--output_dir=/output"
+        ]
+        af3_docker_command_str = " ".join(af3_docker_command)
+
+        update_time_log(log_file_path, f"Started: Structure prediction for {query_file_without_ext}",
+                        True)
+        run_single_job(af3_docker_command_str, f"Running AlphaFold3 for {query_file_without_ext}")
+        update_time_log(log_file_path, f"Completed: Structure prediction for {query_file_without_ext}",
+                        True)
+
+    return
