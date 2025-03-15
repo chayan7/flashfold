@@ -4,7 +4,6 @@ import os
 import sys
 import csv
 import py3Dmol
-import re
 from typing import List, Dict, Tuple, Union, Optional, Literal
 from flashfold.utils import is_valid_path, load_json_file
 
@@ -114,6 +113,8 @@ def generate_3dmol_html(file_path: str, file_type: Literal['pdb', 'cif']) -> str
     viewer = py3Dmol.view(width=800, height=600)
     viewer.addModel(file_data, file_type)
     viewer.setStyle({'cartoon': {'color': 'spectrum'}})
+    # Showing heteroatoms in different shapes
+    viewer.setStyle({'hetflag': True}, {'stick': {'color': 'spectrum'}})
     viewer.zoomTo()
     text_to_replace = f".{file_type}"
     html_path = file_path.replace(text_to_replace, '.html')
