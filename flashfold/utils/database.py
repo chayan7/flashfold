@@ -99,20 +99,25 @@ class Database:
         for query_seq_hash in query_seq_hashes:
             for a3m_file_path in a3m_files:
                 query_hash = get_filename_without_extension(a3m_file_path)
-                if query_seq_hash == query_hash:
-                    with open(a3m_file_path, "r", encoding="utf-8") as a3m_in:
-                        for line in a3m_in:
-                            if line.startswith(">"):
-                                split_line = line.strip().split("\t")
-                                hit_accession = split_line[0][1:]
-                                hit_hash_key = split_line[1]
-                                slash_digit_to_digit_pattern = r'/\d+-\d+'
-                                if is_pattern_matched(slash_digit_to_digit_pattern, hit_accession):
-                                    #print(hit_accession, hit_hash_key)
-                                    query_hash_colon_hit_accession = f"{query_seq_hash}:{hit_accession}"
-                                    for gbk in self.load_protein_to_gbks[hit_hash_key]:
-                                        if query_hash_colon_hit_accession not in gbk_to_hits[gbk]:
-                                            gbk_to_hits[gbk].append(query_hash_colon_hit_accession)
+                if query_seq_hash != query_hash:
+                    continue
+                with open(a3m_file_path, "r", encoding="utf-8") as a3m_in:
+                    for line in a3m_in:
+                        if not line.startswith(">"):
+                            continue
+                        split_line = line.strip().split("\t")
+                        if not len(split_line) > 1:
+                            continue
+                        hit_accession = split_line[0][1:]
+                        hit_hash_key = split_line[1]
+                        slash_digit_to_digit_pattern = r'/\d+-\d+'
+                        if not is_pattern_matched(slash_digit_to_digit_pattern, hit_accession):
+                            continue
+                        # print(hit_accession, hit_hash_key)
+                        query_hash_colon_hit_accession = f"{query_seq_hash}:{hit_accession}"
+                        for gbk in self.load_protein_to_gbks[hit_hash_key]:
+                            if query_hash_colon_hit_accession not in gbk_to_hits[gbk]:
+                                gbk_to_hits[gbk].append(query_hash_colon_hit_accession)
         write_dict_to_json_as_file(gbk_to_hits, json_out_file)
         return None
 

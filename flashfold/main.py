@@ -1,7 +1,7 @@
 import argparse
 from flashfold.scripts import create_protein_db_from_gbk, download_database_from_cloud, predict_3d_structure, \
     extend_main_sequence_db, download_ncbi_data, parse_formats, make_summary_report, make_json_with_ligand, \
-    process_alphafold3_task
+    process_alphafold3_task, predict_stoichiometry
 from flashfold.utils import is_zero_or_pos_int, is_pos_int
 from pathlib import Path
 
@@ -96,11 +96,11 @@ def main() -> None:
     used as AlphaFold3 input. The JSON file will contain the FlashFold predicted MSA information, therefore the 
     homology detection steps in AlphaFold3 will be skipped. '''
     fold = subparsers.add_parser('fold', description=desc_fold)
-    fold.add_argument("-q", "--query", metavar="<FILE_In|File_Dir>", required=True,
+    fold.add_argument("-q", "--query", metavar="<FILE_In|File_Dir>", required=True, type=str,
                       help="path to FASTA/A3M file(s)")
-    fold.add_argument("-d", "--database", metavar="<Database_Dir>",
+    fold.add_argument("-d", "--database", metavar="<Database_Dir>", type=str,
                       help="path to sequence database(s) created using create_db command")
-    fold.add_argument("-o", "--output", metavar="<Output_Dir>", required=True,
+    fold.add_argument("-o", "--output", metavar="<Output_Dir>", required=True, type=str,
                       help="path that will contain output")
     fold.add_argument("-t", "--threads", metavar="<Integer, >=1>", type=is_pos_int, default=16,
                       help="number of threads. Only utilized when query is a path to FASTA file(s) (default: 16)")
@@ -178,16 +178,48 @@ def main() -> None:
     run_af3.add_argument("--af3_image", type=str, metavar="<String>", default="alphafold3",
                          help="name of AlphaFold3 docker image. This is required for the first time unless the path is"
                               "changed in future. default: 'alphafold3'")
-    run_af3.add_argument('--af3_db', type=Path, metavar="<File_Dir>",
+    run_af3.add_argument("--af3_db", type=Path, metavar="<File_Dir>",
                          help="path to the AlphaFold3 database directory. This is required for the first time unless "
                                 "the path is changed in future.")
-    run_af3.add_argument('--af3_params', type=Path, metavar="<File_Dir>",
+    run_af3.add_argument("--af3_params", type=Path, metavar="<File_Dir>",
                          help="path to the AlphaFold3 parameters directory. This is required for the first time unless "
                               "the path is changed in future.")
     run_af3.add_argument("--batch", action="store_true", default=False,
                          help="process multiple queries but one-by-one. If set, --query/-q should be the path to a "
                               "directory containing JSON files. (default: False)")
     run_af3.add_argument("--overwrite_existing_results", metavar="<Boolean>", type=bool, default=False,
+                         help="do not recompute results, if a query has already been predicted. (default: False)")
+
+    # command run_stoi parser
+    desc_stoi = ''' Predict stoichiometry of a protein or protein complex. '''
+    stoi = subparsers.add_parser('stoi', description=desc_stoi)
+    stoi.add_argument("-q", "--query", metavar="<FILE_In>", type=str, required=True,
+                          help="path to the FASTA file of the protein or protein complex")
+    stoi.add_argument("-d", "--database", metavar="<Database_Dir>", type=Path, required=True,
+                      help="path to FlashFold provided sequence database. ")
+    stoi.add_argument("-o", "--output", metavar="<Output_Dir>", type=Path, required=True,
+                          help="path to the output directory")
+    stoi.add_argument("-ss", "--specific_stoichiometry", type=str, nargs=2, action="append",
+                          metavar=("chain_name", "maximum_copy_number"),
+                          help="Multiple specific stoichiometry can be added. Provide 'chain_name' and "
+                               "'maximum_copy_number'. Chain name should be unique and should be same as FASTA header. "
+                               "e.g. (If the query file has two sequences with IDs >A and >B) -ss A 2 -ss B 3")
+    stoi.add_argument("-gs", "--global_stoichiometry", metavar="<Integer, >=2>", type=is_pos_int,
+                            help="Maximum number of copies per chain. Should be greater than or equal to 2.")
+    stoi.add_argument("-t", "--threads", metavar="<Integer, >=1>", type=is_pos_int, default=16,
+                          help="number of threads (default: 16)")
+    stoi.add_argument("--af3_image", type=str, metavar="<String>", default="alphafold3",
+                         help="name of AlphaFold3 docker image. This is required for the first time unless the path is"
+                              "changed in future. default: 'alphafold3'")
+    stoi.add_argument("--af3_db", type=Path, metavar="<File_Dir>",
+                         help="path to the AlphaFold3 database directory. This is required for the first time unless "
+                                "the path is changed in future.")
+    stoi.add_argument("--af3_params", type=Path, metavar="<File_Dir>",
+                         help="path to the AlphaFold3 parameters directory. This is required for the first time unless "
+                              "the path is changed in future.")
+    stoi.add_argument("-af3", "--use_af3", action="store_true", default=False,
+                          help="Run structure prediction with AlphaFold3 (default: False)")
+    stoi.add_argument("--overwrite_existing_results", metavar="<Boolean>", type=bool, default=False,
                          help="do not recompute results, if a query has already been predicted. (default: False)")
 
     # command summary parser
@@ -224,6 +256,8 @@ def main() -> None:
             make_json_with_ligand(args)
         case "run_af3":
             process_alphafold3_task(args)
+        case "stoi":
+            predict_stoichiometry(args)
         case "summary":
             make_summary_report(args)
         case _:

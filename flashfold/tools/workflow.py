@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict
+from typing import List, Dict, Optional
 from flashfold.utils import run_jobs_in_parallel, run_single_job, get_sequence_length_from_single_fasta, \
     update_time_log
 
@@ -67,15 +67,16 @@ def run_msa_to_json(a3m_file_path: str, json_file_path: str) -> None:
     return
 
 
-def run_alphafold3_docker(config: Dict, query_files: List[str], output_dir: str, log_file_path: str) -> None:
+def run_alphafold3_docker(config: Dict[str, str], query_files: List[str], output_dir: str,
+                          log_file_path: Optional[str]) -> None:
     """
     Run AlphaFold3 using Docker.
 
     Args:
-        config (Dict): Configuration dictionary containing paths to AlphaFold3 parameters, database, and Docker image.
+        config (Dict[str, str]): Configuration dictionary containing paths to AlphaFold3 parameters, database, and Docker image.
         query_files (List[str]): List of paths to query JSON files.
         output_dir (str): Directory to store the output results.
-        log_file_path (str): Path to the log file for recording timings.
+        log_file_path (Optional[str]): Path to the log file for recording timings.
 
     Returns:
         None
@@ -101,14 +102,18 @@ def run_alphafold3_docker(config: Dict, query_files: List[str], output_dir: str,
             "python", "run_alphafold.py",
             f"--json_path=/input/{query_file_basename}",
             "--model_dir=/models",
-            "--output_dir=/output"
+            "--output_dir=/output",
+            "--run_data_pipeline=False"
         ]
         af3_docker_command_str = " ".join(af3_docker_command)
 
-        update_time_log(log_file_path, f"Started: Structure prediction for {query_file_without_ext}",
+        if log_file_path:
+            update_time_log(log_file_path, f"Started: Structure prediction for {query_file_without_ext}",
                         True)
         run_single_job(af3_docker_command_str, f"Running AlphaFold3 for {query_file_without_ext}")
-        update_time_log(log_file_path, f"Completed: Structure prediction for {query_file_without_ext}",
+
+        if log_file_path:
+            update_time_log(log_file_path, f"Completed: Structure prediction for {query_file_without_ext}",
                         True)
 
     return

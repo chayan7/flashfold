@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.4] - 2025-03-14
+## [1.1.4] - 2025-03-18
 
 #### Added
 - Adds function to modify json file for AlphaFold3 input, so that ligand can be added or removed.
@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 
 #### Fixed
 - Fixes fasta file checking with extra space in the end.
+- Fixes construction of the complex MSA. 
 
 #### Removed
 - Removes a function (that was not used) named `remove_query_prefix` from `generate_report.py`. 

@@ -5,4 +5,5 @@ from .predict_structure import *
 from .download_ncbi_assembly import *
 from .create_json_with_ligand import *
 from .run_alphafold3 import *
+from .predict_stoi import *
 from .generate_report import *

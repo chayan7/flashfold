@@ -124,7 +124,8 @@ def generate_3dmol_html(file_path: str, file_type: Literal['pdb', 'cif']) -> str
     return html_path
 
 
-def get_summary_table_rows_from_result_path(path_to_results: str, is_af3: bool) -> List[List[str]]:
+def get_summary_table_rows_from_result_path(path_to_results: str, is_af3: bool) \
+        -> Tuple[List[str], List[List[str]]]:
     result_directory = os.path.realpath(path_to_results)
     row_of_rows = []
     for root, _, files in os.walk(result_directory):
@@ -185,7 +186,7 @@ def get_summary_table_rows_from_result_path(path_to_results: str, is_af3: bool) 
                     row[relaxed_model_index] = "n/a"
                     row[result_path_index] = root
                     row_of_rows.append(row)
-    return row_of_rows
+    return summary_table_headers, row_of_rows
 
 
 def remove_na_columns(headers: List[str], row_of_rows: List[List[str]]) -> Tuple[List[str], List[List[str]]]:
@@ -209,7 +210,25 @@ def remove_na_columns(headers: List[str], row_of_rows: List[List[str]]) -> Tuple
     return filtered_headers, filtered_rows
 
 
-def generate_html_table(headers: List[str], rows: List[List[str]], output_file: str):
+def filter_columns(headers: List[str], row_of_rows: List[List[str]], columns_to_keep: List[int]) \
+        -> Tuple[List[str], List[List[str]]]:
+    """
+    Filter based on column indices.
+
+    :param headers: List of headers.
+    :param row_of_rows: List of rows, where each row is a list of values.
+    :param columns_to_keep: List of column indices to keep.
+    :return: Tuple of filtered headers and rows.
+    """
+    # Filter headers and rows
+    filtered_headers = [headers[i] for i in columns_to_keep]
+    filtered_rows = [[row[i] for i in columns_to_keep] for row in row_of_rows]
+
+    return filtered_headers, filtered_rows
+
+
+def generate_html_table(headers: List[str], rows: List[List[str]], output_file: str,
+                        footer: Optional[str] = None) -> None:
     rev_model_index = headers.index('Predicted model')
     rev_relaxed_model_index = headers.index('Predicted model (relaxed)') \
         if 'Predicted model (relaxed)' in headers else -1
@@ -256,6 +275,8 @@ def generate_html_table(headers: List[str], rows: List[List[str]], output_file: 
         f.write('<div class="entries-info" id="entriesInfo"></div>\n')
         f.write('<div id="pagination"></div>\n')
         f.write('</div>\n')
+        if footer:
+            f.write(f'<p class="footer-text">{footer}</p>\n')
         f.write('</body>\n</html>\n')
 
 
@@ -285,12 +306,12 @@ def make_summary_report(args) -> None:
             else:
                 filter_dict[globals()[index_name]] = return_float_if_float(f_name, f_score)
 
-    summary_table_rows = get_summary_table_rows_from_result_path(args.directory, args.alphafold3)
-    if len(summary_table_rows) == 0:
+    summary_headers, summary_rows = get_summary_table_rows_from_result_path(args.directory, args.alphafold3)
+    if len(summary_rows) == 0:
         print(f"\n-- Error: No results found in the provided path below:\n\t'{os.path.realpath(args.directory)}'\n")
         return
 
-    clean_sum_tab_headers, clean_sum_tab_rows = remove_na_columns(summary_table_headers, summary_table_rows)
+    clean_sum_tab_headers, clean_sum_tab_rows = remove_na_columns(summary_headers, summary_rows)
     output_html_file_path = os.path.join(os.path.realpath(args.output), 'summary.html')
     output_csv_file_path = os.path.join(os.path.realpath(args.output), 'summary.csv')
     generate_html_table(clean_sum_tab_headers, clean_sum_tab_rows, output_html_file_path)
@@ -301,15 +322,14 @@ def make_summary_report(args) -> None:
     if all([filter_dict[i] == 0 for i in filter_dict]):
         return
 
-    filtered_table_rows = [row for row in summary_table_rows if
+    filtered_table_rows = [row for row in summary_rows if
                            all([make_float(row[i]) >= filter_dict[i] for i in filter_dict])]
 
     if len(filtered_table_rows) == 0:
         print(f"\n-- Warning: No results met the filtering criteria. \n")
         return
 
-    clean_sum_tab_headers, clean_filtered_tab_rows = remove_na_columns(summary_table_headers, filtered_table_rows)
-
+    clean_sum_tab_headers, clean_filtered_tab_rows = remove_na_columns(summary_headers, filtered_table_rows)
     filtered_output_html_file_path = os.path.join(os.path.realpath(args.output), 'summary_filtered.html')
     filtered_output_csv_file_path = os.path.join(os.path.realpath(args.output), 'summary_filtered.csv')
     generate_html_table(clean_sum_tab_headers, clean_filtered_tab_rows, filtered_output_html_file_path)
