@@ -110,6 +110,9 @@ def main() -> None:
                            "homology searching. (default: False)")
     fold.add_argument("--only_msa", action="store_true", default=False,
                       help="does not predict structures but only produces MSA for given query (default: False)")
+    fold.add_argument("--compact_msa", action="store_true", default=False,
+                      help="creates compact MSA using CD-HIT, makes structure prediction faster with sacrificing "
+                           "little or no accuracy (default: False)")
     fold.add_argument("--only_json", action="store_true", default=False,
                       help="does not predict structures but produces json file for AlphaFold3 input "
                            "for given query (default: False)")
@@ -221,6 +224,9 @@ def main() -> None:
                           help="Run structure prediction with AlphaFold3 (default: False)")
     stoi.add_argument("--overwrite_existing_results", metavar="<Boolean>", type=bool, default=False,
                          help="do not recompute results, if a query has already been predicted. (default: False)")
+    stoi.add_argument("--use_compact_msa", action="store_true", default=False,
+                      help="creates and uses compact MSA for faster structure inference with sacrificing little or "
+                           "no accuracy (default: False)")
 
     # command summary parser
     desc_summary = ''' Generates an interactive HTML report and a CSV file from FlashFold output. '''

@@ -32,13 +32,40 @@ def get_fasta_records(file_path: str) -> Dict[str, str]:
     return records
 
 
-def get_min_num_of_diverse_hits(fasta_path: str, query_length: int, outfile: str, min_sequences: int = 1000,
-                                threads: int = 8) -> None:
+def write_seq_to_tsv_file(seq_records: Dict[str, str], query_length: int, min_sequences: int, outfile: str) -> None:
+    """
+    Write sequence records to a file.
+    Args:
+        seq_records: Dictionary containing sequence records.
+        query_length: Length of the query sequence.
+        min_sequences: Minimum number of sequences to include.
+        outfile: Output file path.
+
+    Returns:
+        None
+    """
+    with open(outfile, 'w') as out_file:
+        s = -1  # Assuming that the first one is the query sequence
+        for record in seq_records:
+            s += 1
+            if s <= min_sequences:  # Include the first required sequences as they are
+                out_file.write(f"{record}\n")
+            else:
+                sequence_length = len(seq_records[record])
+                # Check if the sequence length is at least 50% of the query length
+                if round(sequence_length / query_length, 2) >= 0.5:
+                    out_file.write(f"{record}\n")
+    return
+
+
+def get_min_num_of_diverse_hits(fasta_path: str, query_length: int, outfile: str, compact: bool,
+                                min_sequences: int = 1000, threads: int = 8) -> None:
     """
     Get the most diverse hits from JackHmmer parsed FASTA output.
     :param fasta_path: Path to the FASTA file.
     :param query_length: Length of the query sequence.
     :param outfile: Output file path.
+    :param compact: Flag to indicate if compact MSA is to be generated.
     :param min_sequences: Minimum number of sequences to include.
     :param threads: Number of threads.
     :return: None
@@ -54,44 +81,39 @@ def get_min_num_of_diverse_hits(fasta_path: str, query_length: int, outfile: str
                 out_file.write(f"{record}\n")
         return
 
-    root_out_dir = os.path.dirname(outfile)
+    if compact:
+        root_out_dir = os.path.dirname(outfile)
 
-    with tempfile.TemporaryDirectory(dir=root_out_dir) as temp_dir:
-        for i in range(1, 10):
-            identity = f"{i/10:.2f}"
-            out_dir = os.path.join(temp_dir, f"{outfile_base_name[:-4]}_cd_hit_{identity}")
-            out_fas = os.path.join(out_dir, f"{outfile_base_name[:-4]}.fas")
-            os.makedirs(out_dir, exist_ok=True)
-            cd_hit_command = ("cd-hit -i %s -o %s -c %s -T %s -M %s" %
-                              (fasta_path, out_fas, identity, threads, Memory_CD_hit))
-            try:
-                subprocess.run(cd_hit_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            except subprocess.CalledProcessError as _:
-                continue
+        with tempfile.TemporaryDirectory(dir=root_out_dir) as temp_dir:
+            for i in range(7, 10):
+                identity = f"{i/10:.2f}"
+                out_dir = os.path.join(temp_dir, f"{outfile_base_name[:-4]}_cd_hit_{identity}")
+                out_fas = os.path.join(out_dir, f"{outfile_base_name[:-4]}.fas")
+                os.makedirs(out_dir, exist_ok=True)
+                cd_hit_command = ("cd-hit -i %s -o %s -c %s -T %s -M %s" %
+                                  (fasta_path, out_fas, identity, threads, Memory_CD_hit))
+                try:
+                    subprocess.run(cd_hit_command, shell=True, check=True, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+                except subprocess.CalledProcessError as _:
+                    continue
 
-            seq_records = get_fasta_records(out_fas)
+                seq_records = get_fasta_records(out_fas)
 
-            if len(seq_records) >= min_sequences:
-                with open(outfile, 'w') as out_file:
-                    for record in seq_records:
-                        out_file.write(f"{record}\n")
-                return
-            elif i == 9:
-                with open(outfile, 'w') as out_file:
-                    s = -1  # Assuming that the first one is the query sequence
-                    for record in init_seq_records:
-                        s += 1
-                        if s <= min_sequences:  # Include the first required sequences as they are
-                            out_file.write(f"{record}\n")
-                        else:
-                            sequence_length = len(init_seq_records[record])
-                            # Check if the sequence length is at least 50% of the query length
-                            if round(sequence_length/query_length, 2) >= 0.5:
-                                out_file.write(f"{record}\n")
-                return
-            else:
-                continue
-    return
+                if len(seq_records) >= min_sequences:
+                    write_seq_to_tsv_file(seq_records, query_length, min_sequences, outfile)
+                    return
+                elif i == 9:
+                    # If the last iteration, write the sequences to the output file
+                    write_seq_to_tsv_file(init_seq_records, query_length, min_sequences, outfile)
+                    return
+                else:
+                    continue
+        return
+    else:
+        # If compact is False, write the sequences to the output file
+        write_seq_to_tsv_file(init_seq_records, query_length, min_sequences, outfile)
+        return
 
 
 def main():
@@ -105,12 +127,15 @@ def main():
                         help='Minimum number of sequences to include.')
     parser.add_argument('-t', '--threads', type=int, default=8,
                         help='Number of threads.')
+    parser.add_argument('--compact', action="store_true", default=False,
+                        help='To determine if compact MSA is to be generated.')
     args = parser.parse_args()
 
     get_min_num_of_diverse_hits(
         args.fasta_path,
         args.query_length,
         args.output,
+        args.compact,
         args.min_sequences,
         args.threads
     )

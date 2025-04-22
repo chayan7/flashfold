@@ -2,14 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.4] - 2025-03-18
+## [1.1.4] - 2025-05-07
 
 #### Added
 - Adds function to modify json file for AlphaFold3 input, so that ligand can be added or removed.
 - Adds `ligand` subcommand.
 - Adds `run_af3` subcommand.
 - Adds test cases for the FlashFold `ligand` subcommand.
-- Adds function to generate summary report from AlphaFold3 prediction or results.
+- Adds function to generate a summary report from AlphaFold3 prediction or results.
 
 #### Changed
 - Version number is updated.
@@ -67,7 +67,7 @@ All notable changes to this project will be documented in this file.
 - Version number is updated.
 
 #### Fixed
-- Deletes temp file upon finishing the deduplication.
+- Deletes temporary files upon finishing the deduplication.
 
 #### Removed
 - NA

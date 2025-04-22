@@ -255,7 +255,9 @@ def predict_3d_structure(args) -> None:
             if is_batch else f"Started: MSA construction"
 
         update_time_log(time_log_file, msa_start_log_text, True)
-        run_homology_search(unique_fasta_file_paths, sequence_database.fasta_db, args.threads, temp_dir_path)
+        compact_msa = True if args.compact_msa else False
+        run_homology_search(unique_fasta_file_paths, sequence_database.fasta_db, args.threads, compact_msa,
+                            temp_dir_path)
 
         # copy homology search output
         copy_alignment_files_commands = []

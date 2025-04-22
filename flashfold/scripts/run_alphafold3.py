@@ -32,14 +32,13 @@ def get_af3_configurations(af3_config_file_path: str, af3_image: str, af3_db: Op
     # Check if the AlphaFold3 docker image is valid
     if af3_image != '' and af3_image != old_config.get('image', ''):
         af3_docker_check_com = f"docker run {af3_image} python run_alphafold.py --help"
-        af3_check = subprocess.run(af3_docker_check_com, shell=True, check=False,
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        af3_check = subprocess.run(af3_docker_check_com, shell=True, check=False, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
         if not af3_check.stdout.decode().startswith("AlphaFold 3"):
             print(f"\t-- Error: The AlphaFold3 docker image is invalid.\n")
             return None
 
         new_config['image'] = af3_image
-
 
     # Check if the AlphaFold3 database is valid
     if af3_db:
@@ -116,7 +115,6 @@ def process_alphafold3_task(args) -> None:
 
     print(f"-- {current_time()} > Checking configuration for AlphaFold3 is complete. \n")
 
-
     # Check the query files
     print(f"\n-- {current_time()} > Searching JSON file(s) for AlphaFold3 ...\n")
 
@@ -127,7 +125,6 @@ def process_alphafold3_task(args) -> None:
         return
 
     print(f"-- {current_time()} > Searching JSON file(s) for AlphaFold3 is complete [Found= {len(query_files)}]. \n")
-
 
     # Check and create the output directory if it does not exist
     overwrite = args.overwrite_existing_results

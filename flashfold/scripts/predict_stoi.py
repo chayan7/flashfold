@@ -23,7 +23,7 @@ def modify_query_to_stoichiometry(query_name: str) -> str:
     stoichiometry_num = []
 
     for i in range(len(query_name_split)):
-        if i%2 != 0:
+        if i % 2 != 0:
             stoichiometry_num.append(query_name_split[i])
 
     stoichiometry = []
@@ -85,7 +85,6 @@ def predict_stoichiometry(args) -> None:
     input_fasta_records = get_valid_sequence_records_from_fasta(valid_fasta_file)
     query_fasta_features = get_input_fasta_features(input_fasta_records)
 
-
     total_num_of_unique_chains = len(query_fasta_features.chain_seq_hashes)
     all_chains_in_query = len(query_fasta_features.seqs)
 
@@ -131,7 +130,6 @@ def predict_stoichiometry(args) -> None:
                       f"\n-- Tip: For the provided query file, the copy_number should be at least 2.\n")
                 return
 
-
     global_stoichiometry: Optional[int] = args.global_stoichiometry
     if global_stoichiometry:
         if global_stoichiometry < 2:
@@ -153,7 +151,6 @@ def predict_stoichiometry(args) -> None:
             stoi_str = f"{key}_{i}"
             chain_copy_num_list.append(stoi_str)
         list_of_chain_copy_num_list.append(chain_copy_num_list)
-
 
     stoi_to_analyze = list(itertools.product(*list_of_chain_copy_num_list))
 
@@ -180,12 +177,13 @@ def predict_stoichiometry(args) -> None:
                 for i in range(1, chain_num+1):
                     fasta_file.write(f">{chain_id}_{i}\n{chain_seq}\n")
 
-
     # run flashfold msa prediction
+    db_path = args.database
+    threads = args.threads
+    comp_msa = "--compact_msa" if args.use_compact_msa is True else ""
+    msa_command = f"flashfold fold -q {fasta_dir} -d {db_path} -o {msa_dir} -t {threads} --batch --only_msa {comp_msa}"
 
-    msa_command = f"flashfold fold -q {fasta_dir} -d {args.database} -o {msa_dir} -t {args.threads} --batch --only_msa"
     run_single_job(msa_command, "Building MSA")
-
 
     # structure prediction
     if use_af3:

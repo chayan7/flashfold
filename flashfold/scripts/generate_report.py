@@ -69,7 +69,6 @@ def return_float_if_float(input_name: str, input_score: str) -> float:
         return float(input_score)
 
 
-
 def get_best_score_from_tsv(file_path: str) -> Dict[str, str]:
     with open(file_path, newline='') as tsv_file:
         reader = csv.reader(tsv_file, delimiter='\t')

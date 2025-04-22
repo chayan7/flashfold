@@ -7,7 +7,8 @@ from flashfold.utils import run_jobs_in_parallel, run_single_job, get_sequence_l
 min_jackhmmer_hits = 1000
 
 
-def run_homology_search(fasta_files: List, database_fasta: str, provided_cpu: int, out_path: str) -> None:
+def run_homology_search(fasta_files: List, database_fasta: str, provided_cpu: int, compact_msa: bool,
+                        out_path: str) -> None:
     """
     Run homology searching.
 
@@ -15,6 +16,7 @@ def run_homology_search(fasta_files: List, database_fasta: str, provided_cpu: in
         fasta_files (List): List of paths to FASTA files.
         database_fasta (str): Path to the database FASTA file.
         provided_cpu (int): Number of CPU cores to use.
+        compact_msa (bool): Flag to indicate if compact MSA is to be generated.
         out_path (str): Output directory path.
 
     Returns:
@@ -25,6 +27,7 @@ def run_homology_search(fasta_files: List, database_fasta: str, provided_cpu: in
     deduplicate_script = os.path.join(current_file_dir, "deduplicate_msa.py")
     combined_commands = []
     cpu_per_job = min(8, provided_cpu)
+    dedup_compact_msa_flag = "" if compact_msa is False else "--compact"
     for fasta_file in fasta_files:
         fasta_seq_length = get_sequence_length_from_single_fasta(fasta_file)
         fasta_basename = os.path.basename(fasta_file)
@@ -40,9 +43,9 @@ def run_homology_search(fasta_files: List, database_fasta: str, provided_cpu: in
                        "-o /dev/null --cpu %s -A %s %s %s" % (cpu_per_job, sto_file_path, fasta_file, database_fasta))
         reformat_sto_command = ("python3 %s %s --output_a3m %s --output_fas %s"
                                 % (reformat_script, sto_file_path, a3m_file_path, fas_file_path))
-        deduplicate_command = ("python3 %s %s --query_length %s --min_sequences %s --output %s --threads %s"
+        deduplicate_command = ("python3 %s %s --query_length %s --min_sequences %s --output %s --threads %s %s"
                                % (deduplicate_script, fas_file_path, fasta_seq_length, min_jackhmmer_hits,
-                                   diverse_hits_file_path, cpu_per_job))
+                                   diverse_hits_file_path, cpu_per_job, dedup_compact_msa_flag))
         combined_command = f"{sto_command} && {reformat_sto_command} && {deduplicate_command}"
         combined_commands.append(combined_command)
     run_jobs_in_parallel(provided_cpu, cpu_per_job, combined_commands, "Homology searching")
@@ -73,7 +76,8 @@ def run_alphafold3_docker(config: Dict[str, str], query_files: List[str], output
     Run AlphaFold3 using Docker.
 
     Args:
-        config (Dict[str, str]): Configuration dictionary containing paths to AlphaFold3 parameters, database, and Docker image.
+        config (Dict[str, str]): Configuration dictionary containing paths to AlphaFold3 parameters, database,
+        and Docker image.
         query_files (List[str]): List of paths to query JSON files.
         output_dir (str): Directory to store the output results.
         log_file_path (Optional[str]): Path to the log file for recording timings.
@@ -109,11 +113,11 @@ def run_alphafold3_docker(config: Dict[str, str], query_files: List[str], output
 
         if log_file_path:
             update_time_log(log_file_path, f"Started: Structure prediction for {query_file_without_ext}",
-                        True)
+                            True)
         run_single_job(af3_docker_command_str, f"Running AlphaFold3 for {query_file_without_ext}")
 
         if log_file_path:
             update_time_log(log_file_path, f"Completed: Structure prediction for {query_file_without_ext}",
-                        True)
+                            True)
 
     return
