@@ -169,3 +169,7 @@ qodana.yaml
 
 # configuration files
 flashfold/scripts/af3_config.json
+
+# extra files/directories
+managed_context
+test_suite_analysis

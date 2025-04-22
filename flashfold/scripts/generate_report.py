@@ -136,6 +136,10 @@ def get_summary_table_rows_from_result_path(path_to_results: str, is_af3: bool) 
                     row[result_path_index] = root
                     tsv_file_path = os.path.join(root, file)
                     best_score_from_tsv = get_best_score_from_tsv(tsv_file_path)
+                    # Check whether the model is predicted or not
+                    if 'name' not in best_score_from_tsv:
+                        print(f"-- Warning: No model found in '{root}'.\n")
+                        continue
                     model_name = best_score_from_tsv['name']
                     relaxed_model_name = model_name.replace('_unrelaxed_', '_relaxed_')
                     query_id = model_name.split('_unrelaxed_rank_001_')[0]

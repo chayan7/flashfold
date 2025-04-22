@@ -12,8 +12,8 @@ def main() -> None:
     parser.add_argument("-v", "--version", action="version", version="∞∞ FlashFold v1.1.4 ∞∞")
 
     # Create subparsers for different commands
-    subparsers = parser.add_subparsers(dest='command', title='commands',
-                                       description='Choose any of the following command options')
+    subparsers = parser.add_subparsers(dest='command', title='subcommands',
+                                       description='Choose any of the following options:')
 
     # command create_db parser
     desc_create_db = ''' Create sequence database from Genbank files, by extracting protein sequences. 

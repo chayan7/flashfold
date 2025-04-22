@@ -74,12 +74,13 @@ def is_protein_sequence(sequence: str, is_seq_from_msa: bool = False) -> bool:
     """
 
     # According to https://wiki.thegpm.org/wiki/Amino_acid_symbols, two additional amino acid code is added to the
-    # end of the valid list: U=Selenocysteine; O=Pyrrolysine
+    # list: U=Selenocysteine; O=Pyrrolysine and, added X that stands for Unknown;
+    # The extended amino acid codes are B=Asx; J=Leu/Ile; Z=Glx
 
-    valid_amino_acids = set("ARNDCEQGHILKMFPSTWYVUO")
+    valid_amino_acids = set("ARNDCEQGHILKMFPSTWYVUOX")
 
     if is_seq_from_msa:
-        extended_aa = set("BJXZ")
+        extended_aa = set("BJZ")
         valid_amino_acids.update(extended_aa)
 
     sequence = sequence.upper()  # Convert sequence to uppercase
