@@ -7,7 +7,7 @@ from typing import List, Dict, Tuple, Literal
 from collections import defaultdict
 from collections import namedtuple
 
-from flashfold.tools import run_homology_search, run_af3tools
+from flashfold.tools import run_homology_search, run_msa_to_json
 from flashfold.utils import is_valid_protein_fasta, is_valid_database_dir, manage_output_path, \
     join_list_elements_by_character, create_new_directory, is_valid_protein_a3m, is_a3m_monomer, \
     get_files_from_path_by_extension, run_colabfold, current_time, current_time_raw, update_time_log, \
@@ -255,7 +255,9 @@ def predict_3d_structure(args) -> None:
             if is_batch else f"Started: MSA construction"
 
         update_time_log(time_log_file, msa_start_log_text, True)
-        run_homology_search(unique_fasta_file_paths, sequence_database.fasta_db, args.threads, temp_dir_path)
+        compact_msa = True if args.compact_msa else False
+        run_homology_search(unique_fasta_file_paths, sequence_database.fasta_db, args.threads, compact_msa,
+                            temp_dir_path)
 
         # copy homology search output
         copy_alignment_files_commands = []
@@ -327,7 +329,7 @@ def predict_3d_structure(args) -> None:
             query_file_name = each_file_fold_features["name"]
             af3_json_file_name = f"{query_file_name}.json"
             af3_json_file_path = os.path.join(af3_json_dir, af3_json_file_name)
-            run_af3tools(filtered_a3m_file, af3_json_file_path)
+            run_msa_to_json(filtered_a3m_file, af3_json_file_path)
             json_end_log = f"Completed: JSON file creation for {os.path.basename(os.path.dirname(af3_json_dir))} " \
                 if is_batch else f"Completed: JSON file creation"
             update_time_log(time_log_file, json_end_log, True)

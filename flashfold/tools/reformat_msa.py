@@ -126,12 +126,12 @@ def convert_stockholm(
         a3m_out.write('\n'.join(a3m_seq_chunks) + '\n')
 
     if fas_file is None:
-        return
+        return None
 
     with open(fas_file, 'w') as fas_out:
         fas_out.write('\n'.join(fasta_seq_chunks) + '\n')
 
-    return
+    return None
 
 
 def main():

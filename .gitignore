@@ -166,3 +166,10 @@ qodana.yaml
 
 # macOS specific hidden files
 .DS_Store
+
+# configuration files
+flashfold/scripts/af3_config.json
+
+# extra files/directories
+managed_context
+test_suite_analysis

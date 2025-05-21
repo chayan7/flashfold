@@ -301,3 +301,6 @@ def generate_score_matrix(path_to_predicted_structure: str, cutoff: Optional[flo
         print(f"-- {current_time()} > Completed pDockQ2 score calculation for predicted complex\n")
         return None
 
+    return None
+
+

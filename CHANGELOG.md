@@ -2,11 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.4] - 2025-05-21
+
+#### Added
+- Adds function to generate more compact MSA using `CD-hit`. 
+- Adds function to modify JSON file for AlphaFold3 input, so that ligand can be added or removed.
+- Adds `ligand` subcommand.
+- Adds `run_af3` subcommand.
+- Adds test cases for the FlashFold `ligand` subcommand.
+- Adds function to generate a summary report from AlphaFold3 prediction or results.
+
+#### Changed
+- Version number is updated.
+- README.md file is updated with more examples.
+- Changes location of the test files.
+- Changes the filter argument for FlashFold `summary` subcommand.
+
+#### Fixed
+- Fixes fasta file checking with extra space in the end.
+- Fixes construction of the complex MSA. 
+
+#### Removed
+- Removes a function (that was not used) named `remove_query_prefix` from `generate_report.py`. 
+
 
 ## [1.1.3] - 2025-03-09
 
 #### Added
-- Adds function to generate json file for AlphaFold3 input using FlashFold MSA.
+- Adds function to generate JSON file for AlphaFold3 input using FlashFold MSA.
 - Adds `mypy` for typing.
 
 #### Changed
@@ -46,7 +69,7 @@ All notable changes to this project will be documented in this file.
 - Version number is updated.
 
 #### Fixed
-- Deletes temp file upon finishing the deduplication.
+- Deletes temporary files upon finishing the deduplication.
 
 #### Removed
 - NA
@@ -161,7 +184,7 @@ All notable changes to this project will be documented in this file.
 ## [1.0.4] - 2025-01-22
 
 #### Added
-- Added link of the databases to json file.
+- Added link of the databases to JSON file.
 
 #### Changed
 - README.md file is updated.

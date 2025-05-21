@@ -1,0 +1,5 @@
+-- FlashFold analysis began at: XXXX-XX-XX 16:18:44.882608
+[XXXX-XX-XX 16:18:44.901187] Started: MSA construction
+[XXXX-XX-XX 16:18:45.245455] Completed: MSA construction
+
+-- Total time in seconds: 0.363275

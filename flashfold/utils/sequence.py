@@ -12,7 +12,7 @@ from .util import calculate_md5_hash, join_list_elements_by_character, replace_c
 Sequence = namedtuple('Sequence', ['hash', 'fasta'])
 Infile_feats = namedtuple('Infile_feats', ['accnrs', 'seqs', 'chain_accnrs', 'chain_seqs',
                                            'chain_seq_hashes', 'a3m_header', 'hash_to_fasta', 'empty_subunits'])
-Chain = namedtuple('Chain', ['subunits', 'frequency', 'sequence'])
+Chain = namedtuple('Chain', ['subunits', 'subunit_abundances'])
 Fasta_record = namedtuple('Fasta_record', ['accession', 'fasta'])
 
 
@@ -74,12 +74,13 @@ def is_protein_sequence(sequence: str, is_seq_from_msa: bool = False) -> bool:
     """
 
     # According to https://wiki.thegpm.org/wiki/Amino_acid_symbols, two additional amino acid code is added to the
-    # end of the valid list: U=Selenocysteine; O=Pyrrolysine
+    # list: U=Selenocysteine; O=Pyrrolysine and, added X that stands for Unknown;
+    # The extended amino acid codes are B=Asx; J=Leu/Ile; Z=Glx
 
-    valid_amino_acids = set("ARNDCEQGHILKMFPSTWYVUO")
+    valid_amino_acids = set("ARNDCEQGHILKMFPSTWYVUOX")
 
     if is_seq_from_msa:
-        extended_aa = set("BJXZ")
+        extended_aa = set("BJZ")
         valid_amino_acids.update(extended_aa)
 
     sequence = sequence.upper()  # Convert sequence to uppercase
@@ -122,14 +123,15 @@ def is_valid_protein_fasta(file_path: str) -> bool:
 
         id_count = 0
         for i, line in enumerate(lines):
-            line = line.strip()
-            if line.startswith('>'):
-                if len(line) > 1:
-                    id_count += 1
-            elif not is_protein_sequence(line):
-                raise ValueError(
-                    f"Invalid sequence character(s) found in line {i + 1} of the input protein FASTA file."
-                    f"\nCheck: {file_path}")
+            rstrip_line = line.rstrip()
+            if rstrip_line != "":
+                if rstrip_line.startswith('>'):
+                    if len(rstrip_line) > 1:
+                        id_count += 1
+                elif not is_protein_sequence(rstrip_line):
+                    raise ValueError(
+                        f"Invalid sequence character(s) found in line {i + 1} of the input protein FASTA file."
+                        f"\nCheck: {file_path}")
 
         if id_count == 0:
             raise ValueError(f"No valid protein IDs found in the file.\nCheck: {file_path}")
@@ -210,10 +212,9 @@ def get_valid_sequence_records_from_fasta(fasta_file: str) -> List[Dict]:
         sequence = str(record.seq)
         count += 1
         accession_without_bad_char = replace_char_from_string(accession, "_")
-        changed_accession = f"S{count}_{accession_without_bad_char}"
-        record.id = changed_accession
+        record.id = accession_without_bad_char
         seq_hash = calculate_md5_hash("prot", str(sequence))
-        record_dict: Dict[str, str] = {"accession": changed_accession,
+        record_dict: Dict[str, str] = {"accession": accession_without_bad_char,
                                        "sequence": sequence,
                                        "fasta": record.format("fasta"),
                                        "seq_hash": seq_hash}
@@ -231,31 +232,22 @@ def get_chain_from_sequence(sequence_list: List[str]) -> Chain:
         Chain: A chain of subunits.
     """
     uniq_sequence_set = set()
-    abundances = []
     seq_to_abundance: List[Tuple[str, int]] = []
     for seq in sequence_list:
         if seq not in uniq_sequence_set:
             abundance = sequence_list.count(seq)
-            abundances.append(abundance)
             seq_to_abundance.append(
                 (seq, abundance)
             )
             uniq_sequence_set.add(seq)
 
-    min_abundance = min(abundances)
-
     subunits: List[str] = []
+    abundances: List[int] = []
     for seq, abundance in seq_to_abundance:
-        rational_abundance = round(abundance/min_abundance)
-        for i in range(rational_abundance):
-            subunits.append(seq)
+        subunits.append(seq)
+        abundances.append(abundance)
 
-    subunit_sequence = join_list_elements_by_character(subunits, "")
-    total_sequence = join_list_elements_by_character(sequence_list, "")
-    frequency = total_sequence.count(subunit_sequence)
-    if frequency == 0:
-        return Chain(sequence_list, 1, total_sequence)
-    return Chain(subunits, frequency, subunit_sequence)
+    return Chain(subunits, abundances)
 
 
 def get_input_fasta_features(sequence_records: List[Dict]) -> Infile_feats:
@@ -285,28 +277,21 @@ def get_input_fasta_features(sequence_records: List[Dict]) -> Infile_feats:
     chain_accnrs = []
     chain_seq_hashes = []
     chain_sequences = chain.subunits
-    for seq in chain_sequences:
-        chain_accnrs.append(accessions[sequences.index(seq)])
-        chain_seq_hashes.append(seq_hashes[sequences.index(seq)])
+    for unique_chain_seq in chain_sequences:
+        chain_accnrs.append(accessions[sequences.index(unique_chain_seq)])
+        chain_seq_hashes.append(seq_hashes[sequences.index(unique_chain_seq)])
 
-    # Make unpaired alignment
+    # To make unpaired alignment
     empty_subunits = [""] * len(chain_seq_hashes)
 
     for i in range(len(chain_sequences)):
         empty_seq = "-" * len(chain_sequences[i])
         empty_subunits[i] = empty_seq
 
-    if chain.frequency == 1:
-        uniq_seq_lengths = []
-        uniq_seq_units = []
-        for uniq_seq in chain_sequences:
-            uniq_seq_lengths.append(len(uniq_seq))
-            uniq_seq_units.append(chain.frequency)
-        joined_uniq_seq_lengths = join_list_elements_by_character(uniq_seq_lengths, ",")
-        joined_uniq_seq_units = join_list_elements_by_character(uniq_seq_units, ",")
-        a3m_header = f"#{joined_uniq_seq_lengths}\t{joined_uniq_seq_units}"
-    else:
-        a3m_header = f"#{len(chain.sequence)}\t{chain.frequency}"
+    uniq_sequence_lengths = [len(sequences) for sequences in chain_sequences]
+    joined_uniq_sequence_lengths = join_list_elements_by_character(uniq_sequence_lengths, ",")
+    joined_uniq_seq_abundances = join_list_elements_by_character(chain.subunit_abundances, ",")
+    a3m_header = f"#{joined_uniq_sequence_lengths}\t{joined_uniq_seq_abundances}"
 
     return Infile_feats(accessions, sequences, chain_accnrs, chain_sequences, chain_seq_hashes, a3m_header,
                         hash_to_fasta, empty_subunits)

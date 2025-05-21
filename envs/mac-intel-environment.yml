@@ -15,8 +15,8 @@ dependencies:
   - pip
   - pip:
       - colabfold[alphafold] @ git+https://github.com/sokrypton/ColabFold
-      - jax==0.4.23
-      - jaxlib==0.4.23
+      - jax>=0.4.23
+      - jaxlib>=0.4.23
       - colabfold[alphafold]
       - silence_tensorflow
       - setuptools~=69.0.3
@@ -25,7 +25,7 @@ dependencies:
       - pytest
       - wget~=3.2
       - ujson~=5.10.0
-      - numpy~=1.26.4
+      - numpy>=1.26.4
       - requests~=2.32.3
       - tqdm~=4.66.5
       - py3Dmol
