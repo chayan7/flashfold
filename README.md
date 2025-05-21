@@ -111,11 +111,25 @@ sequence. FlashFold reduces the MSA generation time significantly by using a com
 complexes, it uses the Predicted DockQ version 2 ([pDockQ2](https://doi.org/10.1093/bioinformatics/btad424)) script to 
 calculate the quality of each interface.
 
-## Application
+## Applications
 
-- ###  Database
-  In order to predict the structure of proteins and protein complexes, FlashFold requires a sequence database. The database
-  is used for homology sequence detection as the input sequence to generate a multiple sequence alignment (MSA) . 
+FlashFold offers multiple subcommands to perform various tasks. User can check the available subcommands using the 
+`--help` option:
+
+```sh
+flashfold --help
+```
+
+To view the arguments available for a specific subcommand, use the `--help` option with the desired subcommand:
+
+```sh
+flashfold <subcommand> --help
+```
+Below are some of the most common and useful scenarios for using FlashFold subcommands:
+
+- ###  Download, create or extend Database
+  To predict the structure of proteins and protein complexes, FlashFold requires a sequence database. The database
+  is used for homology sequence detection as the input sequence to generate a multiple sequence alignment (MSA). 
   FlashFold provides the following options:
 
   <details><summary>Download in-built database</summary>
@@ -280,6 +294,47 @@ calculate the quality of each interface.
     <br> <p align="center"><img src="https://github.com/chayan7/flashfold/blob/main/test/input/others/summary.png" alt="Summary" width="700"></p>
     </details>
   
+  - ### Stoichiometry prediction
+    FlashFold provides a subcommand `stoi` to predict the stoichiometry of protein complexes. The best stoichiometry 
+    is selected based on the predicted interface quality metrics. It takes a FASTA file as input, which should contain
+    the sequences of the subunits of the query protein complex. 
+    <details><summary>Input file preparation</summary> 
+    
+    For instance, to predict the stoichiometry of a complex with two subunits, A and B, the FASTA file should be 
+    formatted as follows:
+  
+    ```
+    >A
+    FHWDREGQADDSSSCWLRVASGWAGRNYGAIAIPRVGMEVLVTFLEGDPDQPLVTGCLFH
+    REHPVPYELPGHKTRSVFKSLSSPGGGGYNELRIEDRKGQEQIFVHAQR
+    >B
+    MTSWTLVTLVLLIILAAIRPEQLQVVAYKLVLVTLGAVAGYWIDRSLFPYVARPHECSAN
+    LVVVGAWLRRGLIVLACILGLTLGL
+    ```
+    </details>
+    <details><summary>Commands</summary>
+    <br>
+      Prediction with global stoichiometry (maximum number of copies per chain, should be >=2): <br>
+    
+      If the input FASTA contains two subunits A and B, for "--global_stoichiometry 2" FlashFold will generate 4 
+      possible stoichiometric combinations (A1B1, A1B2, A2B1, A2B2) and predicts structures for each combination. 
+      The best stoichiometry is selected based on the predicted interface quality metrics.
+    
+      ```shell
+      flashfold stoi -q /path/to/query.fasta -d /path/to/flashfold-database/ -o /path/to/output/ --global_stoichiometry 2
+      ```
+        
+     Prediction with specific_stoichiometry: <br>
+     
+      It is also possible to assign a specific copy number for each subunit.
+    
+      ```shell
+      flashfold stoi -q /path/to/query.fasta -d /path/to/flashfold-database/ -o /path/to/output/ --specific_stoichiometry A1 --specific_stoichiometry B2
+      ```
+      In this case, if the input FASTA contains two subunits A and B, FlashFold will generate two possible 
+      stoichiometric combinations (A1B1, A1B2) and predict the best stoichiometry.
+    </details>
+
   
 ## Acknowledgements
 
