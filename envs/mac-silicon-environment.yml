@@ -25,6 +25,7 @@ dependencies:
       - pyinstaller
       - wget~=3.2
       - ujson~=5.10.0
+      - lmdb~=1.6.2
       - numpy>=1.26.4
       - requests~=2.32.3
       - tqdm~=4.66.5

@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.5] - 2025-05-30
+
+#### Added
+- Adds LMDB database for storing data required for MSA construction.
+
+#### Changed
+- Version number is updated.
+- Database creation and extension functions are updated.
+- Test cases were updated to use the new LMDB database.
+
+#### Fixed
+- NA
+
+#### Removed
+- NA
+
+
 ## [1.1.4] - 2025-05-21
 
 #### Added

@@ -8,4 +8,4 @@ from .structure import *
 from .database import *
 from .scoring import *
 from .alignment import *
-
+from .lmdb import *

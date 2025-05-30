@@ -1,8 +1,8 @@
-import threading
 from collections import defaultdict, namedtuple
 from .util import (is_valid_path, get_filename_to_path_set_by_directory, get_files_from_path_by_extension,
-                   get_filename_without_extension, is_pattern_matched)
-from .json import load_json_file, write_dict_to_json_as_file
+                   get_filename_without_extension, is_pattern_matched, get_file_dir_by_file_path)
+from .json import write_dict_to_json_as_file
+from .lmdb import extract_values_from_lmdb
 from typing import Dict, List, Set
 
 
@@ -10,7 +10,7 @@ Db_Content = namedtuple('Db_Content', ['protein_hash', 'is_new_protein',
                                        'new_accessions', 'new_gbks', 'new_fasta'])
 
 
-files_to_be_in_database = ["prot_hash_to_accession.json", "protein_to_gbks.json", "sequence_db.fasta"]
+files_to_be_in_database = ["prot_hash_to_accession.json", "sequence_db.fasta", "data.mdb", "lock.mdb"]
 
 
 def is_valid_database_file_count(db_file_list: List[str], query_dict: Dict[str, Set[str]]) -> bool:
@@ -43,7 +43,7 @@ def is_valid_database_dir(database_dir: str) -> bool:
         bool: True if the database directory is valid, False otherwise.
     """
     if is_valid_path(database_dir):
-        filename_to_path = get_filename_to_path_set_by_directory(database_dir, [".json", ".fasta"])
+        filename_to_path = get_filename_to_path_set_by_directory(database_dir, [".json", ".fasta", ".mdb"])
         if not is_valid_database_file_count(files_to_be_in_database, filename_to_path):
             print(f"Invalid sequence database detected, check: {database_dir} "
                   f"\nTo create database please use the create_db command provided with flashfold.")
@@ -61,34 +61,15 @@ class Database:
         if not is_valid_database_dir(path):
             raise ValueError(f"Invalid database directory: {path}")
         self.database_path = path
-        self.database_files = get_filename_to_path_set_by_directory(self.database_path, [".fasta", ".json"])
+        self.database_files = get_filename_to_path_set_by_directory(self.database_path, [".fasta", ".json", ".mdb"])
         self.fasta_db = self._sequence_db()
-        self.prot_hash_to_accession = self._prot_hash_to_accession()
         self.protein_to_gbks = self._protein_to_gbks()
-        self._protein_to_gbks_loaded: Dict[str, List[str]] = {}
-        self._protein_to_gbks_thread = threading.Thread(target=self._load_protein_to_gbks_in_background)
-        self._protein_to_gbks_thread.start()
 
     def _sequence_db(self) -> str:
-        seq_db_fasta_path_set = self.database_files["sequence_db.fasta"]
-        return list(seq_db_fasta_path_set)[0]
-
-    def _prot_hash_to_accession(self) -> str:
-        prot_hash_to_accession_path_set = self.database_files["prot_hash_to_accession.json"]
-        return list(prot_hash_to_accession_path_set)[0]
+        return list(self.database_files["sequence_db.fasta"])[0]
 
     def _protein_to_gbks(self) -> str:
-        protein_to_gbks_json_set = self.database_files["protein_to_gbks.json"]
-        return list(protein_to_gbks_json_set)[0]
-
-    def _load_protein_to_gbks_in_background(self) -> None:
-        self._protein_to_gbks_loaded = load_json_file(self.protein_to_gbks)
-
-    @property
-    def load_protein_to_gbks(self) -> Dict[str, List[str]]:
-        # Ensure the background thread has completed
-        self._protein_to_gbks_thread.join()
-        return self._protein_to_gbks_loaded
+        return get_file_dir_by_file_path(list(self.database_files["data.mdb"])[0])
 
     def process_homology_search_output(self, path_to_alignment: str, query_seq_hashes: List[str],
                                        json_out_file: str) -> None:
@@ -101,7 +82,7 @@ class Database:
                 query_hash = get_filename_without_extension(a3m_file_path)
                 if query_seq_hash != query_hash:
                     continue
-                with open(a3m_file_path, "r", encoding="utf-8") as a3m_in:
+                with (open(a3m_file_path, "r", encoding="utf-8") as a3m_in):
                     for line in a3m_in:
                         if not line.startswith(">"):
                             continue
@@ -115,7 +96,7 @@ class Database:
                             continue
                         # print(hit_accession, hit_hash_key)
                         query_hash_colon_hit_accession = f"{query_seq_hash}:{hit_accession}"
-                        for gbk in self.load_protein_to_gbks[hit_hash_key]:
+                        for gbk in extract_values_from_lmdb(self.protein_to_gbks, hit_hash_key):
                             if query_hash_colon_hit_accession not in gbk_to_hits[gbk]:
                                 gbk_to_hits[gbk].append(query_hash_colon_hit_accession)
         write_dict_to_json_as_file(gbk_to_hits, json_out_file)
