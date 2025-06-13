@@ -14,9 +14,9 @@ FlashFold predicts the structure of proteins and complexes from amino acid seque
 a focus on speed. It also provides a table of quality metrics for the predicted structures.
 
 - License: FlashFold is licensed under the MIT license
-- Language: Python3 ( > 3.9 )
+- Language: Python3 (> 3.9)
 - OS: Linux, macOS
-- OS-level Dependencies: 
+- OS-level Dependencies (manual installation is not required, the built-in installation script will install these dependencies): 
   - [LocalColabFold](https://github.com/YoshitakaMo/localcolabfold)
   - [HMMER Suite](http://eddylab.org/software/hmmer)
   - [CD-HIT](https://github.com/weizhongli/cdhit)
@@ -351,6 +351,7 @@ and packages:
 *   [HMMER Suite](http://eddylab.org/software/hmmer)
 *   [Immutabledict](https://github.com/corenting/immutabledict)
 *   [JAX](https://github.com/google/jax/)
+*   [lmdb](https://pypi.org/project/lmdb/)
 *   [matplotlib](https://matplotlib.org/)
 *   [ML Collections](https://github.com/google/ml_collections)
 *   [NumPy](https://numpy.org)

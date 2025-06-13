@@ -80,11 +80,11 @@ def extend_main_sequence_db(args) -> None:
             print(f"\nError: The new database path is same as the main database path. \n")
             sys.exit()
 
-        new_protein_hash_key_to_gbks_file_path = os.path.join(new_db_path, "protein_to_gbks.json")
+        new_protein_hash_key_to_gbks_file_path = os.path.join(new_db_path, "prot_hash_to_gbks_lmdb")
         new_protein_hash_key_to_accessions_file_path = os.path.join(new_db_path, "prot_hash_to_accession.json")
         new_db_sequence_file = os.path.join(os.path.abspath(new_db_path), "sequence_db.fasta")
 
-        new_db_protein_hash_to_gbks = load_json_file(new_protein_hash_key_to_gbks_file_path)
+        new_db_protein_hash_to_gbks = lmdb_to_dict(new_protein_hash_key_to_gbks_file_path)
         new_db_protein_hash_to_accessions = load_json_file(new_protein_hash_key_to_accessions_file_path)
         new_db_parsed_sequence_file = SequenceDbFasta(new_db_sequence_file)
 

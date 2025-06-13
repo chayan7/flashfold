@@ -1,9 +1,9 @@
 # To know more about LMDB, visit: https://lmdb.readthedocs.io/en/release/
 
 import lmdb
-import ujson
 from .util import remove_all_contents_in_directory, is_valid_path
-from typing import Dict, Set
+from typing import Dict, Set, List, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 def lmdb_to_dict(lmdb_path: str) -> Dict[str, Set[str]]:
@@ -21,8 +21,8 @@ def lmdb_to_dict(lmdb_path: str) -> Dict[str, Set[str]]:
         with txn.cursor() as cursor:
             for key, value in cursor:
                 key_decode: str = key.decode()
-                item_list = ujson.loads(value)
-                data[key_decode] = set(str(item) for item in item_list)
+                value_decode = set(value.decode().split(","))
+                data[key_decode] = value_decode
     env.close()
     return data
 
@@ -40,7 +40,7 @@ def estimate_lmdb_map_size(data: Dict[str, Set[str]], overhead_factor: float = 3
     total_bytes = 0
     for k, v in data.items():
         key_bytes = len(str(k).encode())
-        value_bytes = len(ujson.dumps(list(v)).encode())
+        value_bytes = len(",".join(list(v)))
         total_bytes += key_bytes + value_bytes
     return int(total_bytes * overhead_factor)
 
@@ -67,27 +67,30 @@ def convert_dict_to_lmdb(data_dict: Dict[str, Set[str]], lmdb_file_path: str) ->
     # Write data to LMDB
     with env.begin(write=True) as txn:
         for key, value in data_dict.items():
-            txn.put(key.encode(), ujson.dumps(list(value)).encode())
+            str_value = ",".join(list(value))
+            txn.put(key.encode(), str_value.encode())
 
     env.close()
     print(f"-- Created LMDB at: {lmdb_file_path}")
 
 
-def extract_values_from_lmdb(lmdb_path: str, key: str) -> Set[str]:
-    """
-    Extract values from an LMDB database for a given key.
-    Args:
-        lmdb_path: Path to the LMDB database.
-        key: The key to extract values for.
-
-    Returns:
-        Set[str]: A set of values associated with the key.
-    """
-    env = lmdb.open(lmdb_path, readonly=True, lock=False)
+def extract_values_from_lmdb(lmdb_path: str, keys: Set[str], max_workers: int) -> Dict[str, List[str]]:
+    key_to_values = {}
+    env = lmdb.open(lmdb_path, readonly=True, lock=False, max_readers=512)
     with env.begin() as txn:
-        value = txn.get(key.encode())
-        if value is not None:
-            return set(ujson.loads(value))
-        else:
-            print(f"-- Warning: No values found for the {key} in the LMDB database.")
-            return set()
+
+        # Function to fetch values for a given key
+        def fetching_lmdb(key: str) -> Tuple[str, List[str]]:
+            value = txn.get(key.encode(), )
+            if value is not None:
+                return key, value.decode().split(",")
+            return key, []
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(fetching_lmdb, key): key for key in keys}
+            for future in as_completed(futures):
+                key, values = future.result()
+                if values is not None:
+                    key_to_values[key] = values
+    env.close()
+    return key_to_values

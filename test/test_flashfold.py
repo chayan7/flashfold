@@ -37,9 +37,8 @@ def test_download_db():
     )
     assert result.returncode == 0, f"{flashfold_sub} failed with error: {result.stderr}"
     assert file_has_content("test/output/cloud_database/test-db/sequence_db.fasta"), f"Error: {flashfold_sub}"
-    #To do: Use this assertion when the LMDB is used
-    #assert file_has_content("test/output/cloud_database/test-db/prot_hash_to_gbks_lmdb/data.mdb"),
-    # f"Error: {flashfold_sub}"
+    assert file_has_content("test/output/cloud_database/test-db/prot_hash_to_gbks_lmdb/data.mdb"), \
+        f"Error: {flashfold_sub}"
     assert file_has_content("test/output/cloud_database/test-db/prot_hash_to_accession.json"), f"Error: {flashfold_sub}"
 
 
