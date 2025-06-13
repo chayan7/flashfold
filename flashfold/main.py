@@ -9,7 +9,7 @@ from pathlib import Path
 def main() -> None:
     # Create the main parser
     parser = argparse.ArgumentParser(description='Predict protein structure from sequence.')
-    parser.add_argument("-v", "--version", action="version", version="∞∞ FlashFold v1.1.4 ∞∞")
+    parser.add_argument("-v", "--version", action="version", version="∞∞ FlashFold v1.2.0 ∞∞")
 
     # Create subparsers for different commands
     subparsers = parser.add_subparsers(dest='command', title='subcommands',
@@ -247,6 +247,7 @@ def main() -> None:
     # Parse the arguments
     args = parser.parse_args()
 
+    # noinspection PyUnreachableCode
     match args.command:
         case "create_db":
             create_protein_db_from_gbk(args)

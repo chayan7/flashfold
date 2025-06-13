@@ -284,7 +284,7 @@ def predict_3d_structure(args) -> None:
             time_log_file = each_fasta_features["time_log"]
             homology_summary_json_file = os.path.join(alignment_path, "homology_summary.json")
             sequence_database.process_homology_search_output(alignment_path, query_fasta_features.chain_seq_hashes,
-                                                             homology_summary_json_file)
+                                                             homology_summary_json_file, args.threads)
 
             # Make combined alignment file
             a3m_files = get_files_from_path_by_extension(alignment_path, ".a3m")

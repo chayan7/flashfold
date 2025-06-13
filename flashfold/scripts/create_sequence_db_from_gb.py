@@ -4,7 +4,7 @@ import os
 import sys
 from collections import defaultdict
 from flashfold.utils import extract_protein_sequences, is_valid_path, get_hash_to_files_with_extensions_from_dir, \
-    current_time, create_fasta_for_db, write_dict_of_set_to_json_as_file
+    current_time, create_fasta_for_db, write_dict_of_set_to_json_as_file, convert_dict_to_lmdb
 
 
 genbank_file_extensions = [".gbff", ".gbk"]
@@ -29,7 +29,7 @@ def create_protein_db_from_gbk(args) -> None:
     print(f"\nStarted at {current_time()}")
 
     protein_hash_keys_to_gbk_hashes_file_path = os.path.join(database_output_directory,
-                                                             "protein_to_gbks.json")
+                                                             "prot_hash_to_gbks_lmdb")
     protein_hash_keys_to_accessions_file_path = os.path.join(database_output_directory,
                                                              "prot_hash_to_accession.json")
     sequence_file = os.path.join(database_output_directory, "sequence_db.fasta")
@@ -51,6 +51,6 @@ def create_protein_db_from_gbk(args) -> None:
                     # noinspection PyTypeChecker
                     print(create_fasta_for_db(accession, gene, prot_product, protein_hash, sequence), file=fasta_out)
                     prot_keys.add(protein_hash)
-    write_dict_of_set_to_json_as_file(protein_hash_keys_to_gbk_hashes, protein_hash_keys_to_gbk_hashes_file_path)
+    convert_dict_to_lmdb(protein_hash_keys_to_gbk_hashes, protein_hash_keys_to_gbk_hashes_file_path)
     write_dict_of_set_to_json_as_file(protein_hash_keys_to_accessions, protein_hash_keys_to_accessions_file_path)
     print(f"\nCompleted at {current_time()}\n")

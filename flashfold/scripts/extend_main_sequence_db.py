@@ -4,7 +4,8 @@ import os
 import sys
 import concurrent.futures
 from flashfold.utils import extract_protein_sequences, get_hash_to_files_with_extensions_from_dir, load_json_file, \
-    current_time, create_fasta_for_db, SequenceDbFasta, is_valid_database_dir, write_dict_of_set_to_json_as_file
+    current_time, create_fasta_for_db, SequenceDbFasta, is_valid_database_dir, write_dict_of_set_to_json_as_file, \
+    lmdb_to_dict, convert_dict_to_lmdb
 
 genbank_file_extensions = [".gbff", ".gbk"]
 
@@ -20,7 +21,7 @@ def process_gbk_file(gbk_hash, gbk_path, main_protein_hash_to_gbks, main_protein
             if gbk_hash not in main_protein_hash_to_gbks[protein_hash]:
                 new_content += 1
                 new_gbk_set.add(gbk_hash)
-                main_protein_hash_to_gbks[protein_hash].append(gbk_hash)
+                main_protein_hash_to_gbks[protein_hash].add(gbk_hash)
         else:
             new_content += 1
             count_new_prot += 1
@@ -38,10 +39,10 @@ def extend_main_sequence_db(args) -> None:
 
     main_db_path = os.path.realpath(args.main_db)
 
-    protein_hash_key_to_gbk_hashes_file = os.path.join(main_db_path, "protein_to_gbks.json")
+    protein_hash_key_to_gbk_hashes_file = os.path.join(main_db_path, "prot_hash_to_gbks_lmdb")
     protein_hash_key_to_accessions_file = os.path.join(main_db_path, "prot_hash_to_accession.json")
     main_sequence_file = os.path.join(os.path.abspath(main_db_path), "sequence_db.fasta")
-    main_protein_hash_to_gbks = load_json_file(protein_hash_key_to_gbk_hashes_file)
+    main_protein_hash_to_gbks = lmdb_to_dict(protein_hash_key_to_gbk_hashes_file)
     main_protein_hash_to_accessions = load_json_file(protein_hash_key_to_accessions_file)
 
     new_content = 0
@@ -79,11 +80,11 @@ def extend_main_sequence_db(args) -> None:
             print(f"\nError: The new database path is same as the main database path. \n")
             sys.exit()
 
-        new_protein_hash_key_to_gbks_file_path = os.path.join(new_db_path, "protein_to_gbks.json")
+        new_protein_hash_key_to_gbks_file_path = os.path.join(new_db_path, "prot_hash_to_gbks_lmdb")
         new_protein_hash_key_to_accessions_file_path = os.path.join(new_db_path, "prot_hash_to_accession.json")
         new_db_sequence_file = os.path.join(os.path.abspath(new_db_path), "sequence_db.fasta")
 
-        new_db_protein_hash_to_gbks = load_json_file(new_protein_hash_key_to_gbks_file_path)
+        new_db_protein_hash_to_gbks = lmdb_to_dict(new_protein_hash_key_to_gbks_file_path)
         new_db_protein_hash_to_accessions = load_json_file(new_protein_hash_key_to_accessions_file_path)
         new_db_parsed_sequence_file = SequenceDbFasta(new_db_sequence_file)
 
@@ -99,7 +100,7 @@ def extend_main_sequence_db(args) -> None:
                                      set(main_protein_hash_to_gbks[protein_hash])):
                     new_content += 1
                     new_gbk_set.update(gbk_hash)
-                    main_protein_hash_to_gbks[protein_hash].append(gbk_hash)
+                    main_protein_hash_to_gbks[protein_hash].add(gbk_hash)
             else:
                 new_gbk_contents = new_db_protein_hash_to_gbks[protein_hash]
                 new_content += 1
@@ -130,7 +131,7 @@ def extend_main_sequence_db(args) -> None:
         for entry in new_fasta_entries:
             seq_file.write(f"{entry}\n")
 
-    write_dict_of_set_to_json_as_file(main_protein_hash_to_gbks, protein_hash_key_to_gbk_hashes_file)
+    convert_dict_to_lmdb(main_protein_hash_to_gbks, protein_hash_key_to_gbk_hashes_file)
     write_dict_of_set_to_json_as_file(main_protein_hash_to_accessions, protein_hash_key_to_accessions_file)
 
     print(f"\n-- Completed at {current_time()}\n")

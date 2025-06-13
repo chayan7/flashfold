@@ -7,7 +7,7 @@ from typing import Dict
 from Bio import SeqIO
 
 
-Memory_CD_hit = 2000
+Memory_CD_hit = 4000
 
 
 def get_fasta_records(file_path: str) -> Dict[str, str]:

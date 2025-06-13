@@ -112,17 +112,13 @@ def get_filename_to_path_set_by_directory(input_directory: str, extensions: List
     Dict[str, Set[str]]: A dictionary where keys are filenames and values are sets of their absolute paths.
     """
     absolute_path = os.path.abspath(input_directory)
-    subdirectories = glob.glob(os.path.join(absolute_path, "*"))
+
     filename_to_path: Dict[str, Set[str]] = defaultdict(set)
-    for potential_file in subdirectories:
-        if os.path.isfile(potential_file):
-            if has_desired_file_extensions(potential_file, extensions):
+    for root, _, files in os.walk(absolute_path):
+        for file in files:
+            if has_desired_file_extensions(file, extensions):
+                potential_file = os.path.join(root, file)
                 filename_to_path[os.path.basename(potential_file)].add(potential_file)
-        elif os.path.isdir(potential_file):
-            potential_database_dir = glob.glob(os.path.join(potential_file, "*"))
-            for potential_db_file in potential_database_dir:
-                if has_desired_file_extensions(potential_db_file, extensions):
-                    filename_to_path[os.path.basename(potential_db_file)].add(potential_db_file)
     return filename_to_path
 
 
@@ -137,25 +133,22 @@ def get_hash_to_files_with_extensions_from_dir(directory: str, extensions: List)
     Returns:
     Dict: A dictionary where keys are MD5 hashes and values are file paths.
     """
-    hash_to_desired_files = {}
+    hash_to_desired_files: Dict[str, str] = {}
 
-    if is_valid_path(directory):
-        absolute_path = os.path.abspath(directory)
-        subdirectories = glob.glob(os.path.join(absolute_path, "*"))
-        count = 0
-        for potential_file in subdirectories:
-            if os.path.isfile(potential_file):
-                if has_desired_file_extensions(potential_file, extensions):
-                    count += 1
-                    print(f"-- indexing genbank file {count}: {potential_file}")
-                    hash_to_desired_files[calculate_md5_hash("path", potential_file)] = potential_file
-            elif os.path.isdir(potential_file):
-                potential_assemblies = glob.glob(os.path.join(potential_file, "*"))
-                for file in potential_assemblies:
-                    if has_desired_file_extensions(file, extensions):
-                        count += 1
-                        print(f"-- indexing genbank file {count}: {file}")
-                        hash_to_desired_files[calculate_md5_hash("path", file)] = file
+    if not is_valid_path(directory):
+        return hash_to_desired_files
+
+    absolute_path = os.path.abspath(directory)
+
+    count = 0
+    for root, _, files in os.walk(absolute_path):
+        for file in files:
+            if has_desired_file_extensions(file, extensions):
+                potential_file = os.path.join(root, file)
+                count += 1
+                print(f"-- indexing genbank file {count}: {potential_file}")
+                hash_to_desired_files[calculate_md5_hash("path", potential_file)] = potential_file
+
     return hash_to_desired_files
 
 
@@ -266,24 +259,18 @@ def get_filename_without_extension(file_path: str) -> str:
     return file_name_without_ext
 
 
-def get_file_path_by_filename(file_path_list: list, file_name) -> str:
+def get_file_dir_by_file_path(file_path: str) -> str:
     """
-    Get the file path from a list of file paths based on the file name.
+    Get the file directory by the full file path.
     Args:
-        file_path_list
-        file_name
+        file_path: string representing the file path.
 
     Returns:
-        str: The file path corresponding to the file name.
+        str: The file path.
     """
-    file_path_to_return = ""
-    for file_path in file_path_list:
-        base_name = os.path.basename(file_path)
-        if base_name == file_name:
-            file_path_to_return = file_path
-        else:
-            pass
-    return file_path_to_return
+    if not os.path.isfile(file_path):
+        raise FileNotFoundError(f"The file '{file_path}' does not exist.")
+    return os.path.dirname(os.path.realpath(file_path))
 
 
 def is_pattern_matched(pattern: str, query: str) -> bool:
